@@ -537,7 +537,7 @@
 
               <button type="button" class="nise-pipe__spot" data-key="gm3a" data-card="gm3a"
                       data-name="Gaussian Marginalized 3D Attention (GM3A)" data-tag="retained at inference"
-                      data-philosophy="A Gaussian attenuation prior is adapted by a learned per-token residual (&alpha; = &alpha;<sub>prior</sub> + &delta;). Regularization anchors the coefficients to the prior; GM3A remains active at inference."
+                      data-philosophy="A Gaussian attenuation prior is adapted by a learned per-token residual (&alpha; = &alpha;<sup>prior</sup> + &delta;). Regularization anchors the coefficients to the prior; GM3A remains active at inference."
                       aria-label="Gaussian Marginalized 3D Attention, GM3A, retained at inference"
                       style="left:38.25%;top:55.97%;width:40.17%;height:41.85%;"></button>
 
@@ -610,8 +610,8 @@
             <h3 class="nise-card__title">Gaussian Marginalized <em>3D Attention</em></h3>
             <p class="nise-card__body">
               A <strong>per-token residual predictor</strong> adjusts positional attenuation
-              around an analytic Gaussian sensor prior. Regularization anchors these learned
-              adjustments to the prior, so uncertain coordinates influence attention according
+              around an analytic Gaussian sensor prior. Regularization keeps the resulting
+              coefficients near the prior, so uncertain coordinates influence attention according
               to their spatial reliability.
             </p>
           </article>
