@@ -2,9 +2,16 @@
 
 **Noise-Invariant Spatial Encoding for 3D Manipulation Policies under Depth Corruption**
 
+**Project website:** https://nise-robotics.github.io/
+
 This repository contains the public project website, including the camera-ready
 framework, real-robot setup, interactive result charts, and robot demonstrations.
 Paper and research-code links will be added when they are available.
+
+The website source is maintained at [Zhiyuan002/NISE](https://github.com/Zhiyuan002/NISE).
+The same site is published through the project organization's
+[Pages repository](https://github.com/nise-robotics/nise-robotics.github.io),
+using the root of its `main` branch.
 
 ## Preview
 
