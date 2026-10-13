@@ -496,14 +496,14 @@
 
         <!-- framework diagram — interactive: hover, focus, or tap a pipeline
              component to reveal a compact rationale tooltip anchored to that box.
-             The camera-ready v7 figure (method_framework_camera_ready_v7.png) is authoritative and
+             The camera-ready v9 figure (method_framework_camera_ready_v9.png) is authoritative and
              unchanged; %-positioned hotspot buttons overlay it and scale with
              the responsive image. All behaviour is in static/js/pipeline.js. -->
         <figure class="nise-figure reveal" style="margin-top:2.2rem">
           <div class="nise-figure__frame nise-pipe" id="nise-pipe">
             <div class="nise-pipe__diagram">
-            <img src="static/images/method_framework_camera_ready_v7.png" width="2200" height="735"
-                 alt="NISE camera-ready framework: multi-view RGB-D passes through a frozen visual backbone and trainable DPT head. Geometric Cross-View Self-Supervision provides training-only supervision; Gaussian Marginalized 3D Attention remains on the inference path. A diffusion action expert combines the spatial features with proprioception to predict actions.">
+            <img src="static/images/method_framework_camera_ready_v9.png" width="2200" height="736"
+                 alt="NISE camera-ready framework: multi-view RGB-D passes through a frozen visual backbone and trainable DPT head. Geometric Cross-View Self-Supervision provides training-only supervision. Gaussian Marginalized 3D Attention adapts a Gaussian attenuation prior with a per-token residual predictor and remains on the inference path. A diffusion action expert combines the spatial features with proprioception to predict actions.">
 
             <!-- Percentage-positioned hotspots (left / top / width / height as %
                  of the image box; measured to the module boxes in the figure).
@@ -537,7 +537,7 @@
 
               <button type="button" class="nise-pipe__spot" data-key="gm3a" data-card="gm3a"
                       data-name="Gaussian Marginalized 3D Attention (GM3A)" data-tag="retained at inference"
-                      data-philosophy="A Gaussian prior attenuates unreliable positional frequencies. A per-token predictor learns residual adjustments around that prior, anchored by regularization. GM3A remains active at inference."
+                      data-philosophy="A Gaussian attenuation prior is adapted by a learned per-token residual (&alpha; = &alpha;<sub>prior</sub> + &delta;). Regularization anchors the coefficients to the prior; GM3A remains active at inference."
                       aria-label="Gaussian Marginalized 3D Attention, GM3A, retained at inference"
                       style="left:38.25%;top:55.97%;width:40.17%;height:41.85%;"></button>
 
@@ -609,10 +609,10 @@
             </div>
             <h3 class="nise-card__title">Gaussian Marginalized <em>3D Attention</em></h3>
             <p class="nise-card__body">
-              A <strong>per-token dampening MLP</strong>, anchored by a sensor prior,
-              marginalizes 3D attention over per-token position uncertainty, so depth-corrupted
-              tokens influence action features according to their spatial reliability instead of
-              being treated as exact.
+              A <strong>per-token residual predictor</strong> adjusts positional attenuation
+              around an analytic Gaussian sensor prior. Regularization anchors these learned
+              adjustments to the prior, so uncertain coordinates influence attention according
+              to their spatial reliability.
             </p>
           </article>
         </div>
@@ -767,11 +767,12 @@
             </span>
             <p class="gm3a-block__intro">
               Depth error grows with range &mdash; and worsens on transparent, reflective,
-              and boundary geometry, exactly where a gripper makes contact. GM3A models each
-              token&rsquo;s position as a Gaussian and marginalizes 3D attention over it
-              (&alpha;&nbsp;=&nbsp;exp(&minus;&sigma;&sup2;&omega;&sup2;/2)): reliable coordinates keep
-              their high-frequency geometric phase, uncertain ones are dampened. Watch the
-              procedure unfold on the real grasp scene below.
+              and boundary geometry, exactly where a gripper makes contact. GM3A derives a
+              Gaussian attenuation prior for uncertain token positions
+              (&alpha;<sup>prior</sup>&nbsp;=&nbsp;exp(&minus;&sigma;&sup2;&omega;&sup2;/2)): reliable coordinates keep
+              their high-frequency geometric phase, uncertain ones are dampened. A learned
+              per-token residual adapts these coefficients. Watch the procedure unfold on
+              the real grasp scene below.
             </p>
           </div>
 
