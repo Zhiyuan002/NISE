@@ -1,0 +1,318 @@
+/* ============================================================================
+   NISE supplementary site — Simulation-results HERO block (the corrupted
+   RLBench point cloud the policy consumes). Loaded AFTER nise.css (and the
+   gcvss3d / gm3a3d blocks), so it inherits the design tokens (--ink, --rule,
+   --surface, --font-body, --shadow-*, --ease, --nise …). No external assets,
+   no network; offline-safe; degrades to a static poster when WebGL is
+   unavailable or the user prefers reduced motion.
+
+   It is the SIBLING of the GM3A / GCVSS 3D blocks (same stage chrome, dark
+   inside), placed as the LEAD element of §Results — simulation, directly above
+   the interactive cliff chart. An orbit of one real RLBench PerAct-18 frame
+   (stack_cups, `front` camera) back-projected to a world-frame point cloud,
+   coloured by its baked sensor RGB; a labelled toggle wipes between the
+   CORRUPTED cloud (what the policy sees, default) and the CLEAN reference.
+
+   JS contract (ids the JS binds to — keep in sync if editing):
+     #simres-cloud           the stage (orbit + auto-orbit)
+     #simres-cloud-toggle    corrupted <-> clean reference toggle
+     #simres-cloud-reset     reset camera
+     #simres-chip-txt / .simres-chip__dot / #simres-verdict   live state chip
+   ========================================================================= */
+
+.simres-block {
+  --sr-ink:    var(--ink, #0a0a0a);
+  --sr-soft:   var(--ink-soft, #4a4a4a);
+  --sr-muted:  var(--muted, #767676);
+  --sr-rule:   var(--rule, #ededed);
+  --sr-font:   var(--font-body, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
+  --sr-ease:   var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+  --sr-radius: var(--radius-pill, 290486px);
+  --sr-stage:  #0a0a12;                 /* dark viewer backdrop (matches gm3a) */
+  --sr-accent: var(--nise, #C4622D);    /* NISE orange */
+
+  margin: 1.8rem auto 0;
+  max-width: var(--maxw, 1000px);
+}
+
+/* centered sub-header (keeps §Results rhythm without a competing <h2>) */
+.simres-block__head { text-align: center; margin: 0 auto 1.2rem; max-width: var(--maxw-narrow, 820px); }
+.simres-block__eyebrow {
+  font-family: var(--sr-font); font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--sr-muted);
+  display: block; margin-bottom: 0.5rem;
+}
+.simres-block__title {
+  font-family: var(--sr-font); font-weight: 700; font-size: 1.2rem;
+  line-height: 1.25; letter-spacing: -0.006em; color: var(--sr-ink); margin: 0 0 0.5rem;
+}
+.simres-block__intro {
+  font-family: var(--sr-font); font-size: 0.97rem; line-height: 1.6;
+  color: var(--sr-soft); margin: 0 auto; max-width: var(--maxw-narrow, 820px);
+}
+.simres-block__intro a { color: var(--link, #1F5F9C); font-weight: 600; }
+.simres-block__intro a:hover { text-decoration: underline; }
+
+.simres-figure { margin: 0; }
+
+/* media frame (matches the gm3a/gcvss stage chrome, dark inside) */
+.simres-stage {
+  position: relative;
+  background: var(--sr-stage);
+  border: 1px solid var(--sr-rule);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(10,10,10,0.04), 0 10px 30px -22px rgba(10,10,10,0.35));
+}
+.simres-cloud {
+  position: relative; width: 100%;
+  aspect-ratio: 16 / 10;               /* matches the 1280x800 poster -> zero layout shift */
+  background: var(--sr-stage);
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none;
+  touch-action: pan-y;                 /* page scroll passes through; canvas claims its own */
+  outline: none;
+}
+.simres-cloud.is-grabbing { cursor: grabbing; }
+.simres-cloud:focus-visible { box-shadow: inset 0 0 0 3px rgba(196, 98, 45, 0.5); }
+.simres-cloud > canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
+
+/* poster shown until WebGL inits — and permanently on fallback */
+.simres-cloud__poster {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block; margin: 0; z-index: 0;
+  transition: opacity 320ms var(--sr-ease);
+}
+.simres-cloud.is-live .simres-cloud__poster { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .simres-cloud__poster { transition: none; } }
+
+/* live state chip (top-left): "Corrupted · what the policy sees". Colour shifts
+   with the toggle (corrupted = accent, clean = neutral green). */
+.simres-chip {
+  position: absolute; top: 10px; left: 10px; z-index: 4;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.34rem 0.6rem;
+  background: rgba(12, 12, 20, 0.62);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 10px;
+  pointer-events: none;
+  font-family: var(--sr-font);
+}
+.simres-chip__dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.12);
+}
+.simres-chip__dot--corrupted { background: var(--sr-accent); }
+.simres-chip__dot--clean     { background: #4dd966; }
+.simres-chip #simres-chip-txt {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.01em; color: #fff;
+}
+.simres-verdict {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 0.08rem 0.4rem; border-radius: var(--sr-radius);
+}
+.simres-verdict--corrupted { color: #ffd9a8; background: rgba(196, 98, 45, 0.22); }
+.simres-verdict--clean     { color: #c8f3cf; background: rgba(77, 217, 102, 0.18); }
+.simres-cloud:not(.is-live):not(.is-static-fallback) .simres-chip { display: none; }
+
+/* corruption legend (bottom-left): the two cues to read for. */
+.simres-legend {
+  position: absolute; left: 10px; bottom: 10px; z-index: 3;
+  display: flex; flex-direction: column; gap: 0.26rem;
+  padding: 0.46rem 0.58rem;
+  background: rgba(12, 12, 20, 0.58);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+  pointer-events: none;
+}
+.simres-legend__head {
+  font-family: var(--sr-font); font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6);
+}
+.simres-legend__row {
+  display: flex; align-items: center; gap: 0.36rem;
+  font-family: var(--sr-font); font-size: 0.62rem; font-weight: 600; color: rgba(255, 255, 255, 0.82);
+}
+.simres-legend__cue {
+  width: 14px; height: 9px; border-radius: 2px; flex: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+/* "holes" = dotted gap; "floaters" = stray speckle. Schematic, not data. */
+.simres-legend__cue--holes {
+  background:
+    radial-gradient(circle at 3px 4px, rgba(255,255,255,0.55) 1px, transparent 1.6px),
+    radial-gradient(circle at 10px 6px, rgba(255,255,255,0.55) 1px, transparent 1.6px),
+    rgba(255,255,255,0.04);
+}
+.simres-legend__cue--floaters {
+  background:
+    radial-gradient(circle at 4px 3px, rgba(196,98,45,0.95) 1.1px, transparent 1.7px),
+    radial-gradient(circle at 11px 7px, rgba(196,98,45,0.95) 1.1px, transparent 1.7px),
+    rgba(255,255,255,0.03);
+}
+.simres-cloud[data-cloud="clean"] .simres-legend { opacity: 0.42; }
+@media (max-width: 480px) { .simres-legend { display: none; } }
+
+/* quiet drag hint, bottom-center */
+.simres-cloud__hint {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 10px; z-index: 3;
+  font-family: var(--sr-font); font-size: 0.62rem; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 600; color: #fff;
+  background: rgba(12, 12, 20, 0.58);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: var(--sr-radius);
+  padding: 0.2rem 0.55rem; pointer-events: none; opacity: 0.92;
+  transition: opacity 220ms var(--sr-ease);
+}
+.simres-cloud.is-grabbing .simres-cloud__hint { opacity: 0; }
+.simres-cloud:not(.is-live) .simres-cloud__hint { display: none; }
+@media (max-width: 520px) { .simres-cloud__hint { display: none; } }
+
+/* control bar — Corrupted/Clean toggle + Reset, bottom-right (matches gm3a). */
+.simres-controls {
+  position: absolute; right: 10px; bottom: 10px; z-index: 5;
+  display: flex; align-items: center; justify-content: flex-end;
+  flex-wrap: wrap; gap: 0.4rem; max-width: calc(100% - 20px);
+}
+.simres-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-family: var(--sr-font); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--sr-ink); background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 8px;
+  padding: 0.32rem 0.6rem; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 150ms var(--sr-ease), color 150ms var(--sr-ease),
+              border-color 150ms var(--sr-ease), box-shadow 150ms var(--sr-ease);
+}
+.simres-btn:hover { background: var(--sr-accent); border-color: var(--sr-accent); color: #fff; }
+.simres-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(196, 98, 45, 0.36); border-color: var(--sr-accent); }
+.simres-btn[aria-pressed="true"] { background: var(--sr-accent); border-color: var(--sr-accent); color: #fff; }
+.simres-btn[disabled] { opacity: 0.5; cursor: default; }
+.simres-btn__ico { font-size: 0.92em; line-height: 1; }
+
+/* visually-hidden live region */
+.simres-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* figure caption — italic, centered, muted (academic convention; matches gm3a-cap) */
+.simres-cap {
+  margin: 1.1rem auto 0;
+  font-family: var(--sr-font); font-style: italic; font-size: 0.92rem; line-height: 1.55;
+  color: var(--sr-soft); max-width: var(--maxw-narrow, 820px); text-align: center;
+}
+.simres-cap b { color: var(--sr-ink); font-weight: 700; font-style: italic; }
+.simres-cap i { font-style: italic; }
+.simres-cap .lbl { font-family: var(--font-mono); font-weight: 600; color: var(--sr-soft); font-size: 0.92em; font-style: normal; }
+
+@media (max-width: 680px) { .simres-block__intro { text-align: left; } }
+
+/* ===================================================================
+   ROLLOUT SLOT — side-by-side baseline-vs-NISE <video> placeholder.
+   A drop-in: each .simres-roll__media is replaced 1:1 by a <video> when the
+   real eval-render lands (see the ROLLOUT SPEC in index.html). Until then a
+   clearly-marked "render pending" poster keeps the slot honest.
+   =================================================================== */
+.simres-rollout { margin: 2.4rem auto 0; max-width: var(--maxw, 1000px); }
+.simres-rollout__head { text-align: center; margin: 0 auto 1.1rem; max-width: var(--maxw-narrow, 820px); }
+.simres-rollout__eyebrow {
+  font-family: var(--sr-font); font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--sr-muted);
+  display: block; margin-bottom: 0.5rem;
+}
+.simres-rollout__title {
+  font-family: var(--sr-font); font-weight: 700; font-size: 1.2rem;
+  line-height: 1.25; letter-spacing: -0.006em; color: var(--sr-ink); margin: 0 0 0.5rem;
+}
+.simres-rollout__intro {
+  font-family: var(--sr-font); font-size: 0.97rem; line-height: 1.6;
+  color: var(--sr-soft); margin: 0 auto; max-width: var(--maxw-narrow, 820px);
+}
+
+/* pending pill in the head — honest "render pending" marker, not data */
+.simres-rollout__pending {
+  display: inline-flex; align-items: center; gap: 0.34rem;
+  margin: 0.15rem auto 0.2rem;
+  font-family: var(--sr-font); font-size: 0.64rem; font-weight: 700;
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--sr-muted);
+  background: var(--surface-2, #f5f5f5);
+  border: 1px solid var(--sr-rule);
+  border-radius: var(--sr-radius);
+  padding: 0.24rem 0.62rem;
+}
+.simres-rollout__pending .simres-rollout__pending-ico { font-size: 0.9em; color: var(--sr-muted); line-height: 1; }
+
+.simres-roll-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;
+  margin: 1.4rem auto 0; max-width: var(--maxw, 1000px);
+}
+/* single delivered rollout — one centered video, not the 2-up pair */
+.simres-roll-grid--solo { grid-template-columns: 1fr; max-width: 640px; }
+.simres-roll { position: relative; margin: 0; }
+.simres-roll__label {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.simres-roll__who {
+  font-family: var(--sr-font); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.01em; color: var(--sr-ink);
+}
+.simres-roll__verdict {
+  font-family: var(--sr-font); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 0.12rem 0.48rem; border-radius: var(--sr-radius);
+}
+.simres-roll__verdict--fail { color: #b23b2e; background: rgba(178, 59, 46, 0.10); border: 1px solid rgba(178, 59, 46, 0.22); }
+.simres-roll__verdict--pass { color: #2f7d4f; background: rgba(47, 125, 79, 0.10); border: 1px solid rgba(47, 125, 79, 0.22); }
+
+/* the drop-in slot: .simres-roll__media is replaced 1:1 by a <video> element */
+.simres-roll__media {
+  position: relative; display: block; width: 100%;
+  aspect-ratio: 16 / 10; overflow: hidden;
+  border: 1px solid var(--sr-rule); border-radius: 12px;
+  background: linear-gradient(160deg, #20202a, #121218);
+  box-shadow: var(--shadow-soft, 0 1px 2px rgba(10,10,10,0.04));
+}
+.simres-roll__media video,
+.simres-roll__media img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.simres-roll__overlay {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.55rem; text-align: center; padding: 1rem;
+}
+.simres-roll__badge {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.28);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.05rem;
+}
+.simres-roll__pending-txt {
+  font-family: var(--sr-font); font-size: 0.62rem; letter-spacing: 0.14em;
+  text-transform: uppercase; font-weight: 600; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+}
+.simres-roll__cam {
+  position: absolute; left: 10px; bottom: 10px; z-index: 3;
+  font-family: var(--sr-font); font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase;
+  font-weight: 700; color: #fff;
+  background: rgba(12,12,20,0.58);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 6px;
+  padding: 0.16rem 0.42rem;
+}
+
+.simres-roll__cap {
+  margin: 1rem auto 0;
+  font-family: var(--sr-font); font-style: italic; font-size: 0.9rem; line-height: 1.55;
+  color: var(--sr-soft); max-width: var(--maxw-narrow, 820px); text-align: center;
+}
+.simres-roll__cap b { color: var(--sr-ink); font-weight: 700; font-style: italic; }
+
+@media (max-width: 680px) {
+  .simres-roll-grid { grid-template-columns: 1fr; }
+  .simres-rollout__intro { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .simres-btn, .simres-cloud__hint { transition: none; }
+}

@@ -1,0 +1,507 @@
+/* ============================================================================
+   NISE supplementary site — chart styles
+   Self-contained styling for the two hand-rolled inline-SVG figures rendered
+   by static/js/charts.js. No third-party CSS. Titles / legends / axis labels
+   use Noto Sans (matching the page); numeric tick + value labels use JetBrains
+   Mono. The terracotta NISE ("ours") series colour is data-locked and unchanged.
+   ========================================================================= */
+
+:root {
+  /* Ground / surface / hairline */
+  --nc-bg:        #FBFAF6;
+  --nc-surface:   #F4F0E7;
+  --nc-rule:      #E5DECF;
+  /* Ink */
+  --nc-ink:       #1C2622;
+  --nc-ink-soft:  #4A554F;
+  --nc-muted:     #7C857E;
+  /* Signal accent (NISE / ours) */
+  --nc-nise:      #C4622D;
+  --nc-nise-wash: #F3E0D2;
+  /* Framework-echo module colours */
+  --nc-gcvss:     #C77F4A;
+  --nc-gm3a:      #2F6B4F;
+}
+
+/* ---- Chart shell --------------------------------------------------------- */
+.nise-chart {
+  --nc-font-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --nc-font-body:  'Noto Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --nc-font-disp:  'Noto Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  position: relative;
+  width: 100%;
+  margin: 0;
+  color: var(--nc-ink);
+  font-family: var(--nc-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.nise-chart *,
+.nise-chart *::before,
+.nise-chart *::after { box-sizing: border-box; }
+
+/* Header line above each chart: eyebrow numeral + title + note */
+.nise-chart__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0 0 0.35rem 0;
+  flex-wrap: wrap;
+}
+.nise-chart__numeral {
+  font-family: var(--nc-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--nc-muted);
+  font-weight: 500;
+  font-feature-settings: "tnum" 1;
+}
+.nise-chart__title {
+  font-family: var(--nc-font-disp);
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--nc-ink);
+}
+.nise-chart__title em {
+  font-style: normal;
+  color: var(--nc-ink);
+}
+.nise-chart__note {
+  font-family: var(--nc-font-body);
+  font-size: 0.78rem;
+  color: var(--nc-muted);
+  margin-left: auto;
+  font-weight: 400;
+}
+
+/* ---- Shared legend ------------------------------------------------------- */
+.nise-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.1rem;
+  margin: 0.2rem 0 0.85rem 0;
+  padding: 0;
+  list-style: none;
+}
+.nise-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  font-family: var(--nc-font-body);
+  font-size: 0.8rem;
+  color: var(--nc-ink-soft);
+  font-weight: 500;
+  cursor: default;
+  white-space: nowrap;
+}
+.nise-legend__swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 2px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(28, 38, 34, 0.18);
+}
+/* Hollow baseline swatch (cliff Variant A): transparent fill + a coloured
+   outline (border colour set inline from the series colour), mirroring the
+   hollow baseline boxes in the chart. NISE ("ours") keeps a solid swatch. */
+.nise-legend__swatch--hollow {
+  background: transparent;
+  border-width: 1.5px;
+  border-style: solid;
+}
+/* Box-glyph swatch (cliff): gradient fill set inline; a hairline coloured edge
+   (colour set inline) to echo the box stroke in the box-line plot. */
+.nise-legend__swatch--box {
+  border-width: 1.5px;
+  border-style: solid;
+}
+.nise-legend__item--ours {
+  color: var(--nc-ink);
+  font-weight: 700;
+}
+.nise-legend__item--ours .nise-legend__swatch {
+  border-color: rgba(196, 98, 45, 0.55);
+  box-shadow: 0 0 0 2px var(--nc-nise-wash);
+}
+
+/* ---- Panels grid (cliff chart) ------------------------------------------ */
+.nise-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.6rem;
+  align-items: start;
+}
+.nise-panel { position: relative; min-width: 0; }
+.nise-panel__caption {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin: 0 0 0.15rem 0;
+}
+.nise-panel__num {
+  font-family: var(--nc-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  color: var(--nc-nise);
+  font-weight: 500;
+}
+.nise-panel__label {
+  font-family: var(--nc-font-body);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--nc-ink);
+}
+
+/* ---- SVG primitives ------------------------------------------------------ */
+.nise-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--nc-font-mono);
+}
+
+/* Axes / grid */
+.nc-axis-line   { stroke: var(--nc-ink); stroke-width: 1.1; }
+.nc-grid-line   { stroke: var(--nc-rule); stroke-width: 1; }
+.nc-grid-line--zero { stroke: var(--nc-ink-soft); stroke-width: 1.1; }
+.nc-tick-text {
+  font-family: var(--nc-font-mono);
+  font-size: 10px;
+  fill: var(--nc-muted);
+  font-feature-settings: "tnum" 1;
+}
+.nc-tick-text--x {
+  font-family: var(--nc-font-body);
+  font-size: 11px;
+  fill: var(--nc-ink-soft);
+  font-weight: 600;
+}
+.nc-axis-title {
+  font-family: var(--nc-font-body);
+  font-size: 10.5px;
+  fill: var(--nc-ink-soft);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Box-line plot (Style 5 "soft gradient box"): per-(method, dose) BOX spanning
+   [mean - std, mean + std], FILLED with a method-keyed VERTICAL GRADIENT (denser
+   toward the mean band, fading at the ±std edges) plus a hairline edge, with a
+   crisp solid MEAN LINE across it. The opacity is carried by the gradient stops
+   (set in JS), so the box fill-opacity stays 1 here (it would otherwise multiply
+   the gradient). NISE ("ours") uses a stronger gradient + heavier hairline/mean,
+   so the terracotta box reads densest. Stroke colour is set inline from the
+   series colour; here we control the hairline weight + opacity. */
+.nc-box {
+  fill-opacity: 1;             /* gradient carries its own per-stop opacity */
+  stroke-width: 0.9;           /* hairline edge (baseline) */
+  stroke-opacity: 0.6;
+}
+.nc-box--ours {
+  stroke-width: 1.3;           /* slightly heavier hairline for NISE */
+  stroke-opacity: 0.95;
+}
+/* Crisp solid mean line (horizontal) across each box at y = mean — series
+   colour, butt cap so it reads as a sharp rule. Weight is set inline (heavier
+   for ours). */
+.nc-meanline {
+  stroke-linecap: butt;
+  opacity: 0.92;
+}
+.nc-meanline--ours {
+  opacity: 1;
+}
+
+/* Per-method MEAN trend line across doses: baselines dashed + de-emphasized,
+   NISE ("ours") solid + bold, drawn on top. (The draw-on animation overrides
+   dasharray during the reveal, then settles to these final patterns.) */
+.nc-trend {
+  fill: none;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 5 4;
+  opacity: 0.5;
+}
+.nc-trend--ours {
+  stroke-width: 2.6;
+  stroke-dasharray: none;
+  opacity: 1;
+}
+
+/* Commercial-sensor band (the "mild" dose region) */
+.nc-band-rect {
+  fill: var(--nc-gm3a);
+  fill-opacity: 0.05;
+}
+.nc-band-edge {
+  stroke: var(--nc-gm3a);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: 0.5;
+}
+.nc-band-text {
+  font-family: var(--nc-font-body);
+  font-size: 9px;
+  fill: var(--nc-gm3a);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Margin bracket (the +36pp / +41pp annotation) */
+.nc-bracket-line {
+  stroke: var(--nc-nise);
+  stroke-width: 1.3;
+  fill: none;
+}
+.nc-bracket-pill-bg {
+  fill: var(--nc-nise);
+}
+.nc-bracket-text {
+  font-family: var(--nc-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  fill: #FBFAF6;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Real-robot grouped bars -------------------------------------------- */
+.nise-group-headers {
+  display: grid;
+  gap: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+.nise-group-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--nc-font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--nc-ink);
+  background: var(--nc-surface);
+  border: 1px solid var(--nc-rule);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+}
+.nise-group-pill__dot {
+  width: 0.5rem; height: 0.5rem; border-radius: 999px;
+  background: var(--nc-ink-soft);
+}
+
+.nc-bar {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+.nc-bar--ours { /* terracotta handled inline */ }
+.nc-bar-ci      { stroke: var(--nc-ink); stroke-width: 1.1; opacity: 0.8; }
+.nc-bar-ci-cap  { stroke: var(--nc-ink); stroke-width: 1.1; opacity: 0.8; }
+.nc-bar-value {
+  font-family: var(--nc-font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  fill: var(--nc-ink);
+  font-feature-settings: "tnum" 1;
+}
+.nc-bar-value--ours { fill: var(--nc-nise); font-weight: 700; }
+.nc-bar-task-label {
+  font-family: var(--nc-font-body);
+  font-size: 10px;
+  fill: var(--nc-ink-soft);
+  font-weight: 600;
+}
+.nc-group-divider {
+  stroke: var(--nc-rule);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.nc-group-band-text {
+  font-family: var(--nc-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  fill: var(--nc-muted);
+  font-weight: 500;
+}
+
+/* ---- Footnote ------------------------------------------------------------ */
+.nise-foot {
+  font-family: var(--nc-font-body);
+  font-size: 0.72rem;
+  color: var(--nc-muted);
+  margin: 0.6rem 0 0 0;
+  line-height: 1.45;
+}
+.nise-foot code {
+  font-family: var(--nc-font-mono);
+  font-size: 0.95em;
+}
+
+/* ---- Replay affordance --------------------------------------------------- */
+.nise-replay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-family: var(--nc-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nc-muted);
+  background: transparent;
+  border: 1px solid var(--nc-rule);
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.nise-replay:hover,
+.nise-replay:focus-visible {
+  color: var(--nc-nise);
+  border-color: var(--nc-nise);
+  background: var(--nc-nise-wash);
+  outline: none;
+}
+.nise-replay svg {
+  width: 0.72rem; height: 0.72rem; display: inline-block;
+}
+.nise-replay__glyph {
+  fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ---- Tooltip ------------------------------------------------------------- */
+.nise-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  min-width: 9.5rem;
+  max-width: 16rem;
+  background: var(--nc-ink);
+  color: var(--nc-bg);
+  border-radius: 6px;
+  padding: 0.5rem 0.62rem;
+  box-shadow: 0 6px 22px rgba(28, 38, 34, 0.28);
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  font-family: var(--nc-font-body);
+  line-height: 1.35;
+}
+.nise-tooltip.is-visible { opacity: 1; transform: translateY(0); }
+.nise-tooltip__title {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; font-weight: 700; margin-bottom: 0.28rem;
+}
+.nise-tooltip__title .sw {
+  width: 0.6rem; height: 0.6rem; border-radius: 2px; flex: 0 0 auto;
+}
+.nise-tooltip__sub {
+  font-size: 0.68rem; color: var(--nc-rule); margin-bottom: 0.3rem;
+  font-weight: 500;
+}
+.nise-tooltip__rows {
+  font-family: var(--nc-font-mono);
+  font-size: 0.7rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.04rem 0.7rem;
+  font-feature-settings: "tnum" 1;
+}
+.nise-tooltip__rows .k { color: var(--nc-rule); }
+.nise-tooltip__rows .v { text-align: right; }
+.nise-tooltip__rows .v--hi { color: var(--nc-nise-wash); font-weight: 700; }
+
+/* Exact value line on click/hover/focus: "Method — Dose: mean ± std%" */
+.nise-tooltip__exact {
+  margin-top: 0.34rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(229, 222, 207, 0.22);
+  font-family: var(--nc-font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--nc-bg);
+  font-feature-settings: "tnum" 1;
+  line-height: 1.3;
+}
+
+/* Focus ring for keyboard navigation on interactive SVG cells */
+.nc-hit {
+  fill: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.nc-hit:focus-visible {
+  outline: 2px solid var(--nc-nise);
+  outline-offset: 1px;
+}
+.nc-focus-ring {
+  fill: none;
+  stroke: var(--nc-nise);
+  stroke-width: 1.6;
+  stroke-dasharray: 3 2;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Responsive: stack panels on small screens -------------------------- */
+@media (max-width: 760px) {
+  .nise-panels { grid-template-columns: 1fr; gap: 1.9rem; }
+  .nise-group-headers { grid-template-columns: 1fr; gap: 0.5rem; }
+  .nise-chart__note { margin-left: 0; flex-basis: 100%; }
+
+  /* The replay pill is absolute/top-right on desktop (with a header
+     padding-right clearance guard). On narrow viewports that clearance is
+     removed, so the absolute pill overprints the chart title. Let it flow
+     inline instead — it is the last DOM child, so it lands on its own line
+     beneath the figure, never colliding with the head. */
+  .nise-replay {
+    position: static;
+    align-self: flex-start;
+    margin-top: 0.65rem;
+  }
+
+  /* Mobile real-robot layout: the chart engine stacks the two task groups as
+     separate taller sub-SVGs at this breakpoint; give them breathing room and
+     a slightly larger value/label type so they stay legible at ~390px. */
+  .nise-robot-stack { display: grid; gap: 1.4rem; }
+  .nise-robot-substack { min-width: 0; }
+  .nise-robot-substack .nc-bar-value { font-size: 12.5px; }
+  .nise-robot-substack .nc-bar-task-label { font-size: 12px; }
+  .nise-robot-substack .nc-tick-text { font-size: 12px; }
+  .nise-robot-subhead {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0 0 0.35rem 0;
+  }
+  .nise-robot-subhead__num {
+    font-family: var(--nc-font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    color: var(--nc-nise);
+    font-weight: 500;
+  }
+  .nise-robot-subhead__label {
+    font-family: var(--nc-font-body);
+    font-size: 0.84rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--nc-ink);
+  }
+}
+
+/* ---- Reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .nise-tooltip,
+  .nise-replay { transition: none; }
+}

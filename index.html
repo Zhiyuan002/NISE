@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NISE — Noise-Invariant Spatial Encoding for 3D Manipulation Policies under Depth Corruption</title>
+  <meta name="description" content="NISE: Noise-Invariant Spatial Encoding for 3D Manipulation Policies under Depth Corruption. CoRL 2026 Spotlight. Research from A*STAR SIMTech, NTU, and NUS.">
+  <meta name="author" content="Zhiyuan Yang, Jiaju He, Ruiteng Zhao, Anqi Cheng, Haiyue Zhu, Kezhi Mao">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="NISE — CoRL 2026 Spotlight">
+  <meta property="og:description" content="Noise-Invariant Spatial Encoding for 3D Manipulation Policies under Depth Corruption. Research from A*STAR SIMTech, NTU, and NUS.">
+  <meta name="robots" content="index, follow">
+  <!-- Inline data-URI favicon avoids an extra network request and works offline. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%231a1a1a'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='7'%20fill='%23d2693f'/%3E%3C/svg%3E">
+  <!-- All assets are local/relative. No analytics, no external scripts, no font CDN. -->
+
+  <!-- Vendored framework + icon + font stylesheets (verbatim include order) -->
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.min.css">
+  <link rel="stylesheet" href="static/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/fonts.css">
+  <!-- Chart engine styles + custom design layer (LAST stylesheets) -->
+  <link rel="stylesheet" href="static/css/charts.css">
+  <link rel="stylesheet" href="static/css/nise.css">
+  <!-- RGB<->depth comparison slider (inherits nise.css tokens — load AFTER it) -->
+  <link rel="stylesheet" href="static/css/slider.css">
+  <!-- §3 depth-corruption block: atlas + severity demo + sim<->real bridge
+       (inherits nise.css + slider.css tokens — load AFTER them) -->
+  <link rel="stylesheet" href="static/css/noise.css">
+  <!-- GCVSS interactive 3D block (inherits nise.css tokens — load AFTER it) -->
+  <link rel="stylesheet" href="static/css/gcvss3d.css">
+  <!-- GM3A dampening-field 3D block (inherits nise.css + gcvss3d.css tokens — load AFTER them) -->
+  <link rel="stylesheet" href="static/css/gm3a3d.css">
+  <link rel="stylesheet" href="static/css/simresults3d.css">
+</head>
+<body class="nise-body">
+
+  <!-- Public project page. Paper and Code links can be added when available. -->
+
+  <!-- ============================== TOP NAV ============================== -->
+  <nav class="nise-nav" aria-label="Section navigation">
+    <div class="nise-wrap nise-nav__inner">
+      <a class="nise-nav__brand" href="#top" aria-label="NISE — top of page">
+        <span class="sc">NISE</span>
+      </a>
+      <button class="nise-burger" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
+        <i class="fas fa-bars" aria-hidden="true"></i>
+      </button>
+      <ul class="nise-nav__links" id="nav-links">
+        <li><a href="#abstract"><span>Abstract</span></a></li>
+        <li><a href="#method"><span>Method</span></a></li>
+        <li><a href="#results"><span>Results</span></a></li>
+        <li><a href="#real-robot"><span>Real&nbsp;robot</span></a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="top">
+
+    <!-- ================================ HERO ============================= -->
+    <header class="nise-hero">
+
+      <!-- ===== Edge-framed background board (behind .nise-hero__inner) =====
+           Real-robot task scenes hug the LEFT / RIGHT edge columns plus a
+           faint TOP band, all feathered toward a clean WHITE center where the
+           title sits. Decorative only (aria-hidden), pointer-events:none, sits
+           at z-index:0 behind .nise-hero__inner (z-index:1) so the title /
+           subtitle / authors / buttons stay fully readable. All imagery is
+           local under static/images/ — ZERO external refs; the .nise-herobg*
+           CSS lives in static/css/nise.css. Static board: no motion to gate. -->
+      <div class="nise-herobg" aria-hidden="true">
+        <div class="nise-herobg__edges">
+          <!-- LEFT edge column: bimanual scene, mortar + test tube -->
+          <div class="nise-herobg__col nise-herobg__col--left">
+            <img class="nise-herobg__img" src="static/images/scene_rgb.png" alt="" loading="lazy" decoding="async" width="320" height="320">
+          </div>
+          <!-- RIGHT edge column: bimanual gripper holding transparent tube -->
+          <div class="nise-herobg__col nise-herobg__col--right">
+            <img class="nise-herobg__img" src="static/images/poster_wrist.png" alt="" loading="lazy" decoding="async" width="320" height="320">
+          </div>
+        </div>
+
+        <!-- faint TOP band: warm acrylic-manipulation scene, very low opacity -->
+        <div class="nise-herobg__band">
+          <img class="nise-herobg__img" src="static/images/acrylic_rgb.png" alt="" loading="lazy" decoding="async" width="1024" height="576">
+        </div>
+
+        <!-- contrast layers: full veil + center-clearing radial white wash -->
+        <div class="nise-herobg__veil"></div>
+        <div class="nise-herobg__scrim"></div>
+        <!-- minimal signal hairline accent along the board's bottom edge -->
+        <div class="nise-herobg__hair"></div>
+      </div>
+      <!-- ===== end background board ===== -->
+
+      <div class="nise-wrap nise-hero__inner">
+
+        <p class="nise-hero__kicker hero-stagger" style="--d:0ms">
+          <span>3D&nbsp;Manipulation</span> · <span>Depth&nbsp;Robustness</span> · <span>Commodity&nbsp;RGB-D</span>
+        </p>
+
+        <h1 class="nise-hero__title hero-stagger" style="--d:90ms">
+          Noise-Invariant Spatial Encoding for 3D Manipulation Policies under Depth Corruption
+        </h1>
+
+        <!-- Author order and affiliations match the camera-ready manuscript. -->
+        <div class="nise-authors hero-stagger" id="author-row" style="--d:300ms">
+          <ul class="nise-authors__list" aria-label="Authors">
+            <li class="nise-authors__name">Zhiyuan Yang<sup>1,2</sup></li>
+            <li class="nise-authors__name">Jiaju He<sup>1,2</sup></li>
+            <li class="nise-authors__name">Ruiteng Zhao<sup>1,3</sup></li>
+            <li class="nise-authors__name">Anqi Cheng<sup>2</sup></li>
+            <li class="nise-authors__name">Haiyue Zhu<sup>1,†</sup></li>
+            <li class="nise-authors__name">Kezhi Mao<sup>2,†</sup></li>
+          </ul>
+          <div class="nise-authors__affiliations" aria-label="Affiliations">
+            <p><sup>1</sup> Singapore Institute of Manufacturing Technology (SIMTech),<br>
+              Agency for Science, Technology and Research (A*STAR), Singapore</p>
+            <p><sup>2</sup> Nanyang Technological University (NTU), Singapore</p>
+            <p><sup>3</sup> National University of Singapore (NUS), Singapore</p>
+          </div>
+          <p class="nise-authors__correspondence"><sup>†</sup> Corresponding authors:
+            Haiyue Zhu and Kezhi Mao
+          </p>
+          <p class="nise-authors__venue">CoRL 2026 <span class="nise-authors__spotlight">Spotlight</span></p>
+        </div>
+
+        <!-- (Hero teaser intentionally removed: panel (a)'s qualitative test-tube view
+             now lives in the §3 RGB<->depth slider, and panel (b)'s degradation curves in
+             the §5 interactive cliff chart. Do not re-add a static teaser here.) -->
+
+      </div>
+    </header>
+
+    <hr class="nise-rule">
+
+    <!-- ============================== ABSTRACT (02) ===================== -->
+    <section class="nise-section" id="abstract">
+      <div class="nise-wrap nise-narrow">
+        <div class="nise-eyebrow reveal">
+          <span class="nise-eyebrow__num">02</span>
+          <span class="nise-eyebrow__label">Abstract</span>
+          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
+        </div>
+        <h2 class="nise-h2 reveal">Geometry is the interface &mdash; and the <em>vulnerability</em>.</h2>
+        <p class="nise-lead reveal">
+          3D manipulation policies derive actions from explicit scene geometry rather than
+          color images alone, enabling them to reason over metric distances, object relations,
+          and robot-scene reachability. This geometric interface is also a vulnerability:
+          commodity RGB-D sensors return missing measurements, boundary artifacts, and plausible
+          but wrong surfaces around transparent, reflective, thin, or textureless objects.
+        </p>
+        <p class="nise-body-text reveal">
+          We study this failure under realistic depth corruption and observe a sharp
+          <span class="concept">depth-noise cliff</span> across modern 3D policies, even when
+          they are trained with matched noisy depth. This residual gap motivates a
+          spatial-encoding approach: corrupted depth becomes entangled with the token
+          coordinates and geometry features consumed by the action expert. We propose
+          <strong>Noise-Invariant Spatial Encoding (NISE)</strong>, a 3D policy architecture
+          that learns trustworthy geometry features even facing imperfect depth. NISE uses
+          <span class="concept">Geometric Cross-View Self-Supervision</span> to shape shared
+          policy features with calibrated multi-view depth, and
+          <span class="concept">Gaussian Marginalized 3D Attention</span> to carry position
+          uncertainty into deployed attention rather than treating every lifted token as exact.
+        </p>
+        <p class="nise-body-text reveal">
+          Across simulated benchmarks with sensor-realistic corruption and real-robot tasks
+          involving transparent and reflective materials, NISE improves depth-noise robustness
+          while preserving clean-depth performance, supporting 3D policies designed for commodity
+          RGB-D deployment rather than clean-depth benchmarks alone.
+        </p>
+      </div>
+
+      <!-- RGB <-> RAW DEPTH comparison sliders, moved up to sit directly under the
+           abstract. Two real-robot scenes side by side: the bimanual transparent
+           test-tube ("pour", D455) scene and the petri-dish lid-removal ("petri",
+           D405 wrist) scene. Video-driven by static/js/slider.js when the video pair
+           is present, stills as fallback. Drag the divider on either one. -->
+      <div class="nise-wrap">
+        <figure class="nise-pair-duo reveal">
+          <div class="nise-pair-duo__cell">
+            <div class="nise-slider"
+                 data-base="static/images/pour"
+                 data-video="static/videos/pour"
+                 data-poster="static/images/pour_rgb.png"
+                 data-cam="D455"
+                 data-label-rgb="RGB"
+                 data-aspect="1/1"
+                 data-width="768" data-height="768"
+                 data-start="50"
+                 data-alt-rgb="Clean RGB of a bimanual scene with a mortar, pestle, and transparent test tube."
+                 data-alt-depth="Raw depth of the same scene: missing measurements and distorted surfaces on the transparent test tube."></div>
+            <figcaption class="nise-slider-cap">
+              <b>Color is clean; geometry is not.</b> Drag the divider: the color image of the
+              transparent test-tube scene is unambiguous, while the <i>raw depth</i> of the same
+              scene shows missing measurements and distorted surfaces concentrated exactly on the
+              objects the policy must grasp.
+            </figcaption>
+          </div>
+          <div class="nise-pair-duo__cell">
+            <div class="nise-slider"
+                 data-base="static/images/petri"
+                 data-video="static/videos/petri"
+                 data-poster="static/images/petri_rgb.png"
+                 data-cam="D405"
+                 data-label-rgb="RGB"
+                 data-aspect="1/1"
+                 data-width="768" data-height="768"
+                 data-start="50"
+                 data-alt-rgb="Close-up D405 wrist-camera RGB of a gripper removing the lid from a transparent petri dish."
+                 data-alt-depth="Raw depth (D405 wrist) of the same petri-dish scene: the transparent dish and lid drop out into holes and unreliable surfaces."></div>
+            <figcaption class="nise-slider-cap">
+              <b>The same failure, a second scene.</b> As the arm lifts the lid off a transparent
+              petri dish, the <i>raw depth</i> collapses on exactly the dish and lid the gripper
+              must track &mdash; holes and unreliable surfaces where the color image is perfectly clear.
+            </figcaption>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ===================== MOTIVATION — the cliff (03) ================ -->
+    <section class="nise-section nise-section--tint" id="motivation">
+      <div class="nise-wrap">
+        <div class="nise-eyebrow reveal">
+          <span class="nise-eyebrow__num">03</span>
+          <span class="nise-eyebrow__label">The depth-corruption cliff</span>
+          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
+        </div>
+        <h2 class="nise-h2 reveal">When clean-depth assumptions meet <em>real sensors</em>.</h2>
+
+        <div class="nise-narrow">
+          <p class="nise-lead reveal">
+            Modern 3D manipulation policies convert RGB-D into point clouds or depth-lifted
+            tokens, yet they are developed and evaluated on clean simulator depth. Commercial
+            RGB-D sensors instead return structured corruption: missing measurements, boundary
+            artifacts, and plausible-but-wrong geometry, worst around transparent, reflective,
+            thin, and textureless objects.
+          </p>
+          <p class="nise-body-text reveal">
+            Under realistic depth corruption, current 3D policies fall off a sharp cliff, the
+            fragility generalizes across visual backbones and action-generation mechanisms, and
+            training on matched noisy depth recovers only part of the lost performance.
+            <strong>NISE addresses this at the architecture level.</strong>
+          </p>
+          <p class="nise-body-text reveal">
+            We model the corruption families that commodity depth sensors actually exhibit
+            &mdash; missing measurements (holes), boundary artifacts (edge bleeding), and
+            plausible-but-wrong surfaces &mdash; and evaluate at calibrated clean, mild, and
+            saturated levels. The presets bracket sensor statistics measured with RealSense
+            D405 and Azure Kinect; saturated is the stress-test endpoint.
+          </p>
+        </div>
+
+        <!-- =================================================================
+             §3 DEPTH-CORRUPTION BLOCK — one coherent unit, read top to bottom:
+               A. what the corruption is, on REAL raw depth (interactive atlas);
+               B. how we model it, on SIMULATED depth (interactive, real pipeline);
+               C. why trust it (honest sim<->real bridge) + tie to the cliff.
+             The copy is in the controlled-diagnostic posture: we PROBE with a
+             structured model; the real robot PROVES. No realism / photorealism
+             claim is made anywhere. Behaviour: static/js/noise.js; styling:
+             static/css/noise.css. Embedded JSON (parsed locally — never fetched,
+             so it works from a bare file:// open) carries the per-mode notes and
+             the per-frame valid%/RMSE the widgets read.
+             ============================================================== -->
+
+        <!-- Embedded metadata (parsed locally so it works from a file:// open).
+             Mirrors the build-time JSON kept under website/_build/noise/. -->
+        <script type="application/json" id="noise-atlas-notes">
+        {
+          "01": {"name": "Missing measurements (holes)", "note": "Invalid or zero-return pixels where the sensor reports no depth at all — the exact dropout mask on this frame (36.8% of pixels)."},
+          "02": {"name": "Boundary artifacts (edge bleeding)", "note": "Example regions along depth discontinuities where returns smear across object edges (depth-gradient detector; approximate, marked as example regions)."},
+          "03": {"name": "Plausible-but-wrong surfaces", "note": "An illustrative call-out on a transparent surface that returns a confident but false reading — not auto-detectable without ground truth, so it is marked illustrative."}
+        }
+        </script>
+        <script type="application/json" id="noise-sim-frames">
+        {
+          "severity": [
+            {"id": "clean", "label": "Clean", "valid": 1.0, "rmse_mm": 0.0},
+            {"id": "mild", "label": "Mild", "valid": 0.8881, "rmse_mm": 38.5},
+            {"id": "moderate", "label": "Moderate", "valid": 0.7268, "rmse_mm": 49.6},
+            {"id": "saturated", "label": "Saturated", "valid": 0.6083, "rmse_mm": 55.0}
+          ],
+          "family": [
+            {"id": "fam_holes", "label": "+ holes", "valid": 0.8655, "rmse_mm": 0.0},
+            {"id": "fam_edge", "label": "+ edge bleeding", "valid": 0.7005, "rmse_mm": 46.3},
+            {"id": "fam_wrong", "label": "+ wrong surfaces", "valid": 0.7482, "rmse_mm": 46.9}
+          ]
+        }
+        </script>
+
+        <!-- ----- PART A: corruption atlas on REAL raw depth ----- -->
+        <div class="noise-block">
+          <div class="noise-block__head">
+            <span class="noise-block__eyebrow">The failure modes, on real depth</span>
+            <h3 class="noise-block__title">Three ways commodity depth fails &mdash; on the real sensor.</h3>
+            <p class="noise-block__intro">
+              The same raw frame as above, now annotated. Hover, tap, or focus a corruption
+              family to glow exactly where it appears in the sensor&rsquo;s own output. Two of
+              the three are detected directly from the depth; the third is an
+              <strong>illustrative call-out</strong>, since a plausible-but-wrong surface cannot
+              be flagged without ground truth.
+            </p>
+          </div>
+
+          <div class="noise-atlas" id="noise-atlas">
+            <figure class="noise-atlas__stage">
+              <div class="noise-atlas__frame">
+                <img class="noise-atlas__base" src="static/noise/real_depth.png"
+                     width="768" height="768" decoding="async"
+                     alt="Colorized raw depth of a transparent test-tube scene from a side time-of-flight camera: large dark regions are missing measurements, and surfaces are distorted around the glass.">
+                <img class="noise-atlas__overlay" data-mode="01" src="static/noise/real_depth_holes.png"
+                     width="768" height="768" decoding="async" aria-hidden="true" alt="">
+                <img class="noise-atlas__overlay" data-mode="02" src="static/noise/real_depth_edges.png"
+                     width="768" height="768" decoding="async" aria-hidden="true" alt="">
+                <img class="noise-atlas__overlay" data-mode="03" src="static/noise/real_depth_wrong.png"
+                     width="768" height="768" decoding="async" aria-hidden="true" alt="">
+                <span class="noise-atlas__tag">Raw depth · side ToF</span>
+                <span class="noise-atlas__hint">Hover a mode</span>
+              </div>
+            </figure>
+
+            <div class="noise-atlas__legend" role="group" aria-label="Highlight a corruption family on the depth frame">
+              <button type="button" class="noise-legend-item" data-mode="01" aria-pressed="false">
+                <span class="noise-legend-item__swatch" aria-hidden="true"></span>
+                <span class="noise-legend-item__txt">
+                  <span class="noise-legend-item__label">
+                    <span class="noise-legend-item__num">01</span>
+                    <span class="noise-legend-item__name">Missing measurements</span>
+                  </span>
+                  <span class="noise-legend-item__note">Zero-return pixels &mdash; the sensor reports no depth. <b>36.8%</b> of this frame.</span>
+                  <span class="noise-legend-item__badge"><span class="icon"><i class="fas fa-bullseye"></i></span>Auto · exact mask</span>
+                </span>
+              </button>
+              <button type="button" class="noise-legend-item" data-mode="02" aria-pressed="false">
+                <span class="noise-legend-item__swatch" aria-hidden="true"></span>
+                <span class="noise-legend-item__txt">
+                  <span class="noise-legend-item__label">
+                    <span class="noise-legend-item__num">02</span>
+                    <span class="noise-legend-item__name">Boundary artifacts</span>
+                  </span>
+                  <span class="noise-legend-item__note">Returns smear across object edges &mdash; flying pixels at depth discontinuities.</span>
+                  <span class="noise-legend-item__badge"><span class="icon"><i class="fas fa-wave-square"></i></span>Auto · example regions</span>
+                </span>
+              </button>
+              <button type="button" class="noise-legend-item" data-mode="03" aria-pressed="false">
+                <span class="noise-legend-item__swatch" aria-hidden="true"></span>
+                <span class="noise-legend-item__txt">
+                  <span class="noise-legend-item__label">
+                    <span class="noise-legend-item__num">03</span>
+                    <span class="noise-legend-item__name">Plausible-but-wrong surfaces</span>
+                  </span>
+                  <span class="noise-legend-item__note">A transparent surface returns a confident but false reading &mdash; the dangerous case.</span>
+                  <span class="noise-legend-item__badge"><span class="icon"><i class="fas fa-pen-ruler"></i></span>Illustrative call-out</span>
+                </span>
+              </button>
+            </div>
+            <span class="noise-sr" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <!-- ----- PART B: how we model it, on SIMULATED depth ----- -->
+        <div class="noise-block">
+          <div class="noise-block__head">
+            <span class="noise-block__eyebrow">How we model it</span>
+            <h3 class="noise-block__title">A controlled diagnostic, not a simulator.</h3>
+            <p class="noise-block__intro">
+              On benchmark depth, we inject these same structural failure modes at calibrated
+              severities, then measure how policies hold up. Sweep the severity, or peel the
+              corruption apart family by family &mdash; both are produced by the
+              <strong>exact pipeline used in the experiments</strong>, not a web re-creation.
+            </p>
+          </div>
+
+          <div class="noise-demo">
+            <!-- severity sweep -->
+            <figure class="noise-demo__panel">
+              <span class="noise-demo__label">
+                <span class="noise-demo__kicker">Severity sweep</span>
+                <span class="noise-demo__name">Clean &rarr; saturated</span>
+              </span>
+              <div class="noise-demo__stage" id="noise-severity">
+                <img class="noise-demo__img is-shown" data-i="0" src="static/noise/sim_clean.png"
+                     width="384" height="384" decoding="async"
+                     alt="Clean simulated depth: a smooth gradient with a crisp robot-arm and object silhouette.">
+                <img class="noise-demo__img" data-i="1" src="static/noise/sim_mild.png"
+                     width="384" height="384" decoding="async" loading="lazy"
+                     alt="Mild 3-in-1 corruption: light dropout speckle, thin boundary bleed, and faint wrong-surface distortion together.">
+                <img class="noise-demo__img" data-i="2" src="static/noise/sim_moderate.png"
+                     width="384" height="384" decoding="async" loading="lazy"
+                     alt="Moderate 3-in-1 corruption: more dropout speckle, boundary bleed, and wrong-surface distortion together.">
+                <img class="noise-demo__img" data-i="3" src="static/noise/sim_saturated.png"
+                     width="384" height="384" decoding="async" loading="lazy"
+                     alt="Saturated 3-in-1 corruption: dense dropout speckle, boundary bleed, and wrong-surface distortion across the frame.">
+                <span class="noise-demo__readout"><b>Clean</b></span>
+              </div>
+              <div class="noise-demo__control">
+                <input type="range" class="noise-range" id="noise-severity-range"
+                       min="0" max="3" step="1" value="0"
+                       aria-label="Corruption severity: clean, mild, moderate, saturated">
+                <ul class="noise-ticks" id="noise-severity-ticks" aria-hidden="true">
+                  <li class="is-active">Clean</li>
+                  <li>Mild</li>
+                  <li>Moderate</li>
+                  <li>Saturated</li>
+                </ul>
+              </div>
+              <figcaption class="noise-demo__cap">
+                <b>Calibrated severities on simulator depth.</b> Mild and saturated bracket the
+                stress range we evaluate; the readout reports surviving valid pixels and depth error.
+              </figcaption>
+            </figure>
+
+            <!-- per-family build-up -->
+            <figure class="noise-demo__panel">
+              <span class="noise-demo__label">
+                <span class="noise-demo__kicker">Family build-up</span>
+                <span class="noise-demo__name">One failure mode at a time</span>
+              </span>
+              <div class="noise-demo__stage" id="noise-family">
+                <img class="noise-demo__img is-shown" data-i="0" src="static/noise/sim_fam_holes.png"
+                     width="384" height="384" decoding="async" loading="lazy"
+                     alt="Holes only: pure dropout, surviving depth values left untouched.">
+                <img class="noise-demo__img" data-i="1" src="static/noise/sim_fam_edge.png"
+                     width="384" height="384" decoding="async" loading="lazy"
+                     alt="Holes plus edge bleeding: boundary flying pixels added.">
+                <img class="noise-demo__img" data-i="2" src="static/noise/sim_fam_wrong.png"
+                     width="384" height="384" decoding="async"
+                     alt="Holes, edge bleeding, plus wrong surfaces: displaced and phantom depth values added.">
+                <span class="noise-demo__readout"><b>+ holes</b></span>
+              </div>
+              <div class="noise-steps" id="noise-family-steps" role="group" aria-label="Add one corruption family at a time">
+                <button type="button" class="noise-step is-active" data-step="0">
+                  <span class="noise-step__dot" aria-hidden="true"></span>+ holes
+                </button>
+                <button type="button" class="noise-step" data-step="1">
+                  <span class="noise-step__dot" aria-hidden="true"></span>+ edge bleed
+                </button>
+                <button type="button" class="noise-step" data-step="2">
+                  <span class="noise-step__dot" aria-hidden="true"></span>+ wrong surfaces
+                </button>
+              </div>
+              <figcaption class="noise-demo__cap">
+                <b>The same three families, separable.</b> Holes alone leave surviving depth
+                exact (0&nbsp;mm error); edge bleed and wrong surfaces add the displaced,
+                phantom geometry that misleads a policy.
+              </figcaption>
+            </figure>
+          </div>
+
+          <p class="noise-posture">
+            <span class="noise-posture__mark" aria-hidden="true"><i class="fas fa-circle-info"></i></span>
+            <span class="noise-posture__text">
+              <b>A controlled diagnostic, not a simulator.</b> We inject the structural failure
+              modes real depth sensors are known to produce &mdash; missing returns, boundary
+              bleed, plausible-but-wrong surfaces &mdash; at calibrated severities to
+              <b>probe</b> policy robustness. We make no claim that it replicates any specific
+              sensor. We compare NISE with <b>six baseline architectures</b> (3DDA, RVT-2,
+              SAM2Act, DP3, FlowPolicy, and ManiFlow) across <b>two benchmarks</b> (RLBench
+              and MetaWorld), and test transfer to real robots under naturally occurring
+              depth corruption.
+            </span>
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <hr class="nise-rule">
+
+    <!-- =============================== METHOD (04) ===================== -->
+    <section class="nise-section" id="method">
+      <div class="nise-wrap">
+        <div class="nise-eyebrow reveal">
+          <span class="nise-eyebrow__num">04</span>
+          <span class="nise-eyebrow__label">Method &mdash; NISE</span>
+          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
+        </div>
+        <h2 class="nise-h2 reveal">Features that stay stable when the <em>depth is wrong</em>.</h2>
+
+        <!-- the thinking, lead with it -->
+        <div class="nise-thinking reveal">
+          <span class="nise-thinking__tag">The thinking</span>
+          <p>
+            What a 3D policy needs is geometry features that stay stable when the
+            underlying depth is imperfect. That implies two moves: shape the shared features toward
+            view-consistent geometry during training
+            (<span class="concept">GCVSS</span>), and let the deployed attention carry how much
+            to trust each lifted token&rsquo;s position
+            (<span class="concept">GM3A</span>).
+          </p>
+        </div>
+
+        <!-- framework diagram — interactive: hover, focus, or tap a pipeline
+             component to reveal a compact rationale tooltip anchored to that box.
+             The camera-ready v7 figure (method_framework_camera_ready_v7.png) is authoritative and
+             unchanged; %-positioned hotspot buttons overlay it and scale with
+             the responsive image. All behaviour is in static/js/pipeline.js. -->
+        <figure class="nise-figure reveal" style="margin-top:2.2rem">
+          <div class="nise-figure__frame nise-pipe" id="nise-pipe">
+            <div class="nise-pipe__diagram">
+            <img src="static/images/method_framework_camera_ready_v7.png" width="2200" height="735"
+                 alt="NISE camera-ready framework: multi-view RGB-D passes through a frozen visual backbone and trainable DPT head. Geometric Cross-View Self-Supervision provides training-only supervision; Gaussian Marginalized 3D Attention remains on the inference path. A diffusion action expert combines the spatial features with proprioception to predict actions.">
+
+            <!-- Percentage-positioned hotspots (left / top / width / height as %
+                 of the image box; measured to the module boxes in the figure).
+                 Each is a real <button> with aria-label = component name + tag and
+                 data-* carrying the compact tooltip content. data-card links the
+                 GCVSS / GM3A spots to their contribution card below. -->
+            <div class="nise-pipe__spots" id="nise-pipe-spots" aria-hidden="false">
+              <button type="button" class="nise-pipe__spot" data-key="input"
+                      data-name="Multi-View RGB-D" data-tag="input"
+                      data-philosophy="RGB and raw depth from calibrated camera views provide the policy input. During training, cross-view depth also supplies geometric supervision without clean-depth targets."
+                      aria-label="Multi-View RGB-D, input"
+                      style="left:1.05%;top:10.46%;width:11.88%;height:81.08%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="backbone"
+                      data-name="Frozen Visual Backbone (ViT)" data-tag="frozen"
+                      data-philosophy="The pretrained vision transformer extracts visual features with its weights frozen. The DPT head and downstream geometry and policy components are trained."
+                      aria-label="Frozen Visual Backbone, ViT, frozen"
+                      style="left:15.11%;top:25.37%;width:8.91%;height:53.36%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="dpt"
+                      data-name="DPT Head" data-tag="trainable"
+                      data-philosophy="The trainable DPT-style head produces a shared spatial feature map. Both the training-only cross-view geometry head and the deployed policy consume this map."
+                      aria-label="DPT Head, trainable"
+                      style="left:26.11%;top:25.37%;width:7.51%;height:53.36%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="gcvss" data-card="gcvss"
+                      data-name="Geometric Cross-View Self-Supervision (GCVSS)" data-tag="training-only"
+                      data-philosophy="Depth from source view j is warped into target view i. A masked geometry loss supervises the cross-view head on valid, visible projections; the head is removed at inference."
+                      aria-label="Geometric Cross-View Self-Supervision, GCVSS, training-only"
+                      style="left:38.25%;top:6.28%;width:40.17%;height:41.85%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="gm3a" data-card="gm3a"
+                      data-name="Gaussian Marginalized 3D Attention (GM3A)" data-tag="retained at inference"
+                      data-philosophy="A Gaussian prior attenuates unreliable positional frequencies. A per-token predictor learns residual adjustments around that prior, anchored by regularization. GM3A remains active at inference."
+                      aria-label="Gaussian Marginalized 3D Attention, GM3A, retained at inference"
+                      style="left:38.25%;top:55.97%;width:40.17%;height:41.85%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="proprioception"
+                      data-name="Proprioception" data-tag="robot state"
+                      data-philosophy="The robot&rsquo;s proprioceptive state conditions the diffusion action expert alongside the spatial features from GM3A."
+                      aria-label="Proprioception, robot state"
+                      style="left:80.69%;top:3.92%;width:11%;height:26.68%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="action"
+                      data-name="Action Expert (Diffusion)" data-tag="action prediction"
+                      data-philosophy="A DDPM-based diffusion action expert predicts actions conditioned on NISE&rsquo;s spatial features and the robot&rsquo;s proprioception."
+                      aria-label="Action Expert, Diffusion, action prediction"
+                      style="left:82.78%;top:37.93%;width:6.81%;height:28.25%;"></button>
+
+              <button type="button" class="nise-pipe__spot" data-key="output"
+                      data-name="Action" data-tag="robot execution"
+                      data-philosophy="The predicted actions drive the robot. At deployment, the policy retains GM3A and uses observed RGB-D and proprioception without the cross-view supervision head or clean depth."
+                      aria-label="Action, robot execution"
+                      style="left:90.21%;top:35.57%;width:9.52%;height:37.66%;"></button>
+            </div>
+            </div>
+
+            <!-- Compact rationale tooltip — anchored to the active hotspot, auto-
+                 flips above/below to stay within the figure. aria-live so screen
+                 readers announce the active component's rationale on keyboard focus. -->
+            <div class="nise-pipe__tip" id="nise-pipe-tip" role="status" aria-live="polite" hidden>
+              <div class="nise-pipe__tip-head">
+                <span class="nise-pipe__tip-name" id="nise-pipe-tip-name"></span>
+                <span class="nise-pipe__tip-tag" id="nise-pipe-tip-tag"></span>
+              </div>
+              <p class="nise-pipe__tip-text" id="nise-pipe-tip-text"></p>
+              <span class="nise-pipe__tip-arrow" id="nise-pipe-tip-arrow" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <figcaption class="nise-figure__cap">
+            <b>NISE framework.</b> Per-camera RGB-D is encoded by a frozen visual backbone (ViT)
+            and a trainable DPT-style head into a shared spatial feature map. NISE acts on this
+            shared map: during training,
+            <span class="concept">Geometric Cross-View Self-Supervision</span> attaches a
+            cross-view geometry head to encourage view-consistent geometry in the same features
+            consumed by the policy; at deployment, this head is removed.
+            <span class="concept">Gaussian Marginalized 3D Attention</span> remains in the
+            deployed policy and carries per-token coordinate uncertainty into 3D attention, so
+            lifted tokens influence action features according to their spatial reliability.
+          </figcaption>
+        </figure>
+
+        <!-- two module cards (the contribution spotlight) -->
+        <div class="nise-modules">
+          <article class="nise-card nise-card--gcvss reveal">
+            <div class="nise-card__top">
+              <span class="nise-card__badge">GCVSS</span>
+              <span class="nise-card__phase"><span class="icon"><i class="fas fa-dumbbell"></i></span>Training-time</span>
+            </div>
+            <h3 class="nise-card__title">Geometric Cross-View <em>Self-Supervision</em></h3>
+            <p class="nise-card__body">
+              The <strong>cross-view geometry head</strong> learns from calibrated multi-view
+              depth to encourage view-consistent geometry in the shared policy features. It needs
+              no clean-depth ground truth and is removed at deployment.
+            </p>
+          </article>
+
+          <article class="nise-card nise-card--gm3a reveal">
+            <div class="nise-card__top">
+              <span class="nise-card__badge">GM3A</span>
+              <span class="nise-card__phase"><span class="icon"><i class="fas fa-bullseye"></i></span>Retained at inference</span>
+            </div>
+            <h3 class="nise-card__title">Gaussian Marginalized <em>3D Attention</em></h3>
+            <p class="nise-card__body">
+              A <strong>per-token dampening MLP</strong>, anchored by a sensor prior,
+              marginalizes 3D attention over per-token position uncertainty, so depth-corrupted
+              tokens influence action features according to their spatial reliability instead of
+              being treated as exact.
+            </p>
+          </article>
+        </div>
+
+        <!-- ===================================================================
+             GCVSS interactive 3D block — ONE coherent unit (two coordinated
+             panels under one shared header + caption) that gives the GCVSS card
+             above its visual evidence. Panel A: a three.js orbit + auto-animation
+             of the co-registered cross-view cloud (petri D405+Kinect)
+             with camera frustums (one camera weak -> two cameras lock the geometry). Panel B:
+             the Kinect->D405 warp reveal (drag-divider between "warped" and "actual"
+             + an agreement-overlay toggle).
+             All behaviour is in static/js/gcvss3d.js (vendored three.js, ZERO
+             network at runtime); styling in static/css/gcvss3d.css. Graceful
+             fallback: no-WebGL / reduced-motion keeps the static poster.
+             NOTE: ids gcvss-cloud / gcvss-warp + their control-button ids are
+             the contract the JS binds to — keep them in sync if editing. -->
+        <div class="gcvss-block reveal" id="gcvss-block">
+          <div class="gcvss-block__head">
+            <span class="gcvss-block__eyebrow">GCVSS &middot; the supervision signal</span>
+            <h3 class="gcvss-block__title">Two noisy views, one geometry.</h3>
+            <p class="gcvss-block__intro">
+              GCVSS needs no clean-depth ground truth. Both cameras are noisy and neither
+              one alone pins the geometry; their cross-view agreement is the signal. Watch
+              the second view lock it in.
+            </p>
+          </div>
+
+          <div class="gcvss-grid">
+
+            <!-- A. CLOUD ORBIT + AUTO-ANIMATION + FRUSTUMS (three.js; lazy-init,
+                 disposes offscreen). Scene = PETRI (D405+Kinect); the gear scene is
+                 archived in gcvss3d.js (SCENES.gear) but no longer exposed. The JS binds:
+                   #gcvss-cloud-play / #gcvss-cloud-replay  (animation controls)
+                   #gcvss-cloud-scene-name (legend scene label)
+                   #gcvss-chip-txt / .gcvss-chip__dot / #gcvss-verdict (live chip)
+                   #gcvss-tl .gcvss-tl__step  (timeline phases) -->
+            <figure class="gcvss-panel gcvss-panel--cloud">
+              <figcaption class="gcvss-panel__label">
+                <span class="gcvss-panel__kicker">Co-registered</span>
+                <span class="gcvss-panel__title">One camera is weak; two lock it</span>
+              </figcaption>
+              <div class="gcvss-stage">
+                <div class="gcvss-cloud" id="gcvss-cloud" data-scene="petri"
+                     aria-label="Interactive 3D point cloud with camera frustums, driven by a three-stage stepper. Stage 1: the D405 wrist camera's cloud in its real per-point sensor colour. Stage 2: the same one camera, recoloured to show it is a single, one-sided view. Stage 3: the Kinect side-top camera's cloud and frustum fade in and the two views lock the full geometry. Drag to orbit, scroll or pinch to zoom; press P to play or pause, the arrow keys to step the stages, R to reset the view. A static view is shown if 3D is unavailable.">
+                  <img class="gcvss-cloud__poster" src="static/cloud/gcvss_cloud_poster.png"
+                       width="1400" height="875" decoding="async"
+                       alt="Co-registered point cloud of the petri-dish grasp scene: the D405 wrist camera (green) and the Kinect side-top camera (coral) landing on the same surfaces, with each camera's frustum drawn at its real pose.">
+                  <div class="gcvss-chip" aria-hidden="true">
+                    <span class="gcvss-chip__dot gcvss-chip__dot--d405"></span>
+                    <span id="gcvss-chip-txt">D405 alone &middot; sensor RGB</span>
+                    <span class="gcvss-verdict gcvss-verdict--weak" id="gcvss-verdict">weak &middot; one-sided</span>
+                  </div>
+                  <div class="gcvss-legend" aria-hidden="true">
+                    <span class="gcvss-legend__head">Camera of origin &middot; <span id="gcvss-cloud-scene-name">Petri dish</span></span>
+                    <span class="gcvss-legend__row"><span class="gcvss-legend__dot gcvss-legend__dot--d405"></span>D405 &middot; wrist</span>
+                    <span class="gcvss-legend__row"><span class="gcvss-legend__dot gcvss-legend__dot--kinect"></span>Kinect &middot; side-top</span>
+                  </div>
+                  <span class="gcvss-cloud__hint">Drag to orbit</span>
+                  <div class="gcvss-cloud__anim">
+                    <button type="button" class="gcvss-btn" id="gcvss-cloud-replay"
+                            aria-label="Replay the animation from the start">
+                      <span class="gcvss-btn__ico" aria-hidden="true">&#10227;</span><span class="gcvss-btn__lbl">Replay</span>
+                    </button>
+                    <button type="button" class="gcvss-btn" id="gcvss-cloud-play" aria-pressed="true"
+                            aria-label="Play or pause the animation">
+                      <span class="gcvss-btn__ico" aria-hidden="true">&#9208;</span><span class="gcvss-btn__lbl">Pause</span>
+                    </button>
+                  </div>
+                  <span class="gcvss-sr" aria-live="polite"></span>
+                </div>
+              </div>
+              <ol class="gcvss-tl" id="gcvss-tl" aria-label="Cloud stages">
+                <li class="gcvss-tl__step is-active" role="button" tabindex="0" data-step="0" aria-current="step"><span class="gcvss-tl__n">01</span>Primary cloud &middot; sensor RGB</li>
+                <li class="gcvss-tl__step" role="button" tabindex="0" data-step="1" aria-current="false"><span class="gcvss-tl__n">02</span>One-sided geometry</li>
+                <li class="gcvss-tl__step" role="button" tabindex="0" data-step="2" aria-current="false"><span class="gcvss-tl__n">03</span>+ Kinect &middot; geometry locked</li>
+              </ol>
+            </figure>
+
+            <!-- B. WARP REVEAL (pre-baked stills; pure CSS clip, no WebGL needed) -->
+            <figure class="gcvss-panel gcvss-panel--warp">
+              <figcaption class="gcvss-panel__label">
+                <span class="gcvss-panel__kicker">Cross-view warp</span>
+                <span class="gcvss-panel__title">Warp one view into the other</span>
+              </figcaption>
+              <div class="gcvss-stage">
+                <div class="gcvss-warp" id="gcvss-warp"
+                     data-start="50"
+                     data-label-warped="Kinect warped"
+                     data-label-actual="D405 actual">
+                  <img class="gcvss-warp__media gcvss-warp__media--actual"
+                       src="static/warp/warp_d405_actual.png" width="768" height="768"
+                       draggable="false" decoding="async"
+                       alt="The D405 wrist camera's own depth — the target frame, colorized.">
+                  <img class="gcvss-warp__media gcvss-warp__media--warped"
+                       src="static/warp/warp_kinect_into_d405.png" width="768" height="768"
+                       draggable="false" decoding="async"
+                       alt="The Kinect side-top depth forward-warped into the D405 wrist frame, colorized.">
+                  <img class="gcvss-warp__media gcvss-warp__media--agree"
+                       src="static/warp/warp_agreement.png" width="768" height="768"
+                       draggable="false" decoding="async"
+                       alt="Agreement overlay: green where the warped Kinect depth matches the D405 actual depth within tolerance; magenta where they diverge.">
+                  <span class="gcvss-warp__tag gcvss-warp__tag--warped">Kinect warped</span>
+                  <span class="gcvss-warp__tag gcvss-warp__tag--actual">D405 actual</span>
+                  <div class="gcvss-warp__divider"><div class="gcvss-warp__handle">
+                    <span class="gcvss-warp__chev gcvss-warp__chev--l"></span>
+                    <span class="gcvss-warp__chev gcvss-warp__chev--r"></span>
+                  </div></div>
+                  <span class="gcvss-warp__hint">Drag &harr;</span>
+                  <div class="gcvss-warp__controls">
+                    <button type="button" class="gcvss-btn" id="gcvss-warp-agree" aria-pressed="false"
+                            aria-label="Toggle the agreement overlay: green where the warped depth matches the actual depth within tolerance">
+                      <span class="gcvss-btn__ico" aria-hidden="true">&#9638;</span><span class="gcvss-btn__lbl">Show agreement</span>
+                    </button>
+                  </div>
+                  <span class="gcvss-sr" aria-live="polite"></span>
+                </div>
+              </div>
+            </figure>
+
+          </div>
+
+          <p class="gcvss-cap">
+            <b>Both views are noisy, and there is no clean depth to copy from.</b> One camera
+            alone sees a thin, one-sided shell and cannot pin the geometry; the second
+            viewpoint closes the missing faces and <i>locks</i> it. Because the two cameras
+            carry <i>independent</i> noise on the <i>same</i> surfaces, their cross-view
+            agreement is a learnable target &mdash; GCVSS supervises it Noise2Noise-style, with
+            <b>no clean-depth ground truth required</b>. Right: warping Kinect into the D405
+            frame, the warped depth lands on the actual depth across those shared surfaces.
+          </p>
+        </div>
+
+        <!-- ===================================================================
+             GM3A interactive 3D block — the dampening field made visible. The
+             sibling of the GCVSS block above; it gives the GM3A card its visual
+             evidence. A three.js orbit of the real grasp cloud, every point
+             coloured by its GM3A dampening coefficient (plasma; bright = trusted,
+             dark = attenuated). One toggle morphs between vanilla 3D-RoPE (all
+             geometry treated as exact) and GM3A (weighted by reliability).
+             Behaviour in static/js/gm3a3d.js (vendored three.js, ZERO network);
+             styling in static/css/gm3a3d.css. Graceful fallback: no-WebGL /
+             reduced-motion keeps the static poster. ids gm3a-cloud /
+             gm3a-cloud-mode / gm3a-cloud-reset are the JS contract. -->
+        <div class="gm3a-block reveal" id="gm3a-block">
+          <div class="gm3a-block__head">
+            <span class="gm3a-block__eyebrow">GM3A &middot; the dampening field</span>
+            <h3 class="gm3a-block__title">Trust geometry by its reliability.</h3>
+            <span class="gm3a-block__tag">
+              <span class="gm3a-block__tag-ico" aria-hidden="true"><i class="fas fa-pen-ruler"></i></span>
+              Conceptual illustration of the mechanism
+            </span>
+            <p class="gm3a-block__intro">
+              Depth error grows with range &mdash; and worsens on transparent, reflective,
+              and boundary geometry, exactly where a gripper makes contact. GM3A models each
+              token&rsquo;s position as a Gaussian and marginalizes 3D attention over it
+              (&alpha;&nbsp;=&nbsp;exp(&minus;&sigma;&sup2;&omega;&sup2;/2)): reliable coordinates keep
+              their high-frequency geometric phase, uncertain ones are dampened. Watch the
+              procedure unfold on the real grasp scene below.
+            </p>
+          </div>
+
+          <figure class="gm3a-figure">
+            <div class="gm3a-stage">
+              <div class="gm3a-cloud" id="gm3a-cloud" tabindex="0"
+                   aria-label="Animated conceptual illustration of the GM3A procedure on a real grasp scene, as an interactive 3D point cloud. Five steps loop: exact points, position uncertainty blooms from the sensor range law, an illustrative per-token adaptation on transparent and boundary geometry, dampening that colours each point by its reliability (bright is trusted, dark is attenuated), and the result. Drag to orbit, scroll or pinch to zoom. Press P to play or pause, arrow keys to step, C to show a second copy of the cloud in real sensor RGB beside it, R to reset. A static view of the dampening field is shown if 3D is unavailable.">
+                <img class="gm3a-cloud__poster" src="static/cloud/gm3a_cloud_poster.png"
+                     width="1280" height="800" decoding="async"
+                     alt="A real grasp scene as a 3D point cloud coloured by GM3A's dampening coefficient: the nearby grasp target is largely trusted (warm), while the far bench fades to cool blue (attenuated), with extra attenuation illustrated on uncertain transparent and boundary geometry.">
+                <div class="gm3a-caption" aria-hidden="true">
+                  <span class="gm3a-caption__n" id="gm3a-step-n">Step 01 of 05</span>
+                  <span class="gm3a-caption__txt" id="gm3a-step-txt">Exact points &mdash; vanilla 3D attention treats every coordinate as exact.</span>
+                </div>
+                <div class="gm3a-legend" aria-hidden="true">
+                  <span class="gm3a-legend__head">Dampening &alpha;</span>
+                  <span class="gm3a-legend__bar"></span>
+                  <span class="gm3a-legend__scale"><span>attenuated</span><span>trusted</span></span>
+                  <span class="gm3a-legend__note">
+                    <span><span class="gm3a-legend__dot gm3a-legend__dot--real"></span>sensor prior &middot; real</span>
+                    <span><span class="gm3a-legend__dot gm3a-legend__dot--illus"></span>per-token adaptation &middot; illustrative</span>
+                  </span>
+                </div>
+                <span class="gm3a-cloud__hint">Drag to orbit</span>
+                <span class="gm3a-rgbtag" aria-hidden="true"><b>left</b> sensor RGB &nbsp;&middot;&nbsp; <b>right</b> GM3A &alpha;</span>
+                <div class="gm3a-controls">
+                  <button type="button" class="gm3a-btn" id="gm3a-cloud-play" aria-pressed="true"
+                          aria-label="Play or pause the GM3A procedure animation">
+                    <span class="gm3a-btn__ico" aria-hidden="true">&#9208;</span><span class="gm3a-btn__lbl">Pause</span>
+                  </button>
+                  <button type="button" class="gm3a-btn" id="gm3a-cloud-replay"
+                          aria-label="Replay the procedure from the first step">
+                    <span class="gm3a-btn__ico" aria-hidden="true">&#10227;</span><span class="gm3a-btn__lbl">Replay</span>
+                  </button>
+                  <button type="button" class="gm3a-btn" id="gm3a-cloud-rgb" aria-pressed="false"
+                          aria-label="Show a second copy of the cloud in real sensor RGB, beside the dampening cloud">
+                    <span class="gm3a-btn__ico" aria-hidden="true">&#9673;</span><span class="gm3a-btn__lbl">Sensor RGB</span>
+                  </button>
+                  <button type="button" class="gm3a-btn" id="gm3a-cloud-reset"
+                          aria-label="Reset the 3D view to its default angle">
+                    <span class="gm3a-btn__ico" aria-hidden="true">&#8634;</span><span class="gm3a-btn__lbl">Reset</span>
+                  </button>
+                </div>
+                <span class="gm3a-sr" aria-live="polite"></span>
+              </div>
+            </div>
+
+            <ol class="gm3a-steps" id="gm3a-steps" aria-label="GM3A procedure steps">
+              <li class="gm3a-step is-active" role="button" tabindex="0" data-step="0" aria-current="step">
+                <span class="gm3a-step__n">01</span>Exact points</li>
+              <li class="gm3a-step" role="button" tabindex="0" data-step="1" aria-current="false">
+                <span class="gm3a-step__n">02</span>Uncertainty blooms</li>
+              <li class="gm3a-step" role="button" tabindex="0" data-step="2" aria-current="false">
+                <span class="gm3a-step__n">03</span>Per-token adaptation<span class="gm3a-step__illus">illustrative</span></li>
+              <li class="gm3a-step" role="button" tabindex="0" data-step="3" aria-current="false">
+                <span class="gm3a-step__n">04</span>Dampening &rarr; trust</li>
+              <li class="gm3a-step" role="button" tabindex="0" data-step="4" aria-current="false">
+                <span class="gm3a-step__n">05</span>Result</li>
+            </ol>
+          </figure>
+
+          <p class="gm3a-cap">
+            <b>Reliability, not certainty.</b> The procedure is a <i>conceptual illustration</i>
+            of GM3A. The <i>sensor prior</i> &mdash; each token&rsquo;s position uncertainty under the
+            camera&rsquo;s range law &mdash; is real; the per-token adaptation on transparent and
+            boundary geometry illustrates what GM3A is <i>designed to learn</i> as a residual on top
+            of that prior. GM3A <b>dampens</b> brittle high-frequency phase where geometry is
+            uncertain &mdash; it does not reconstruct hidden surfaces &mdash; so corrupted depth steers
+            the action less and the policy leans on trustworthy structure.
+          </p>
+        </div>
+
+        <!-- ablation one-liner (muted) -->
+        <p class="nise-note reveal">
+          <span class="nise-tag">Ablation · mild noise</span>
+          Under noisy-depth training and mild-noise evaluation, the frozen-ViT+DPT control reaches
+          <span class="metric">75.5%</span>; adding GCVSS and GM3A together raises it to
+          <span class="metric metric--nise">85.7%</span>. GCVSS provides the main representation
+          gain; GM3A adds complementary gains once the features are shaped.
+        </p>
+      </div>
+    </section>
+
+    <hr class="nise-rule">
+
+    <!-- ====================== RESULTS — simulation (05) ================ -->
+    <section class="nise-section nise-section--tint" id="results">
+      <div class="nise-wrap">
+        <div class="nise-eyebrow reveal">
+          <span class="nise-eyebrow__num">05</span>
+          <span class="nise-eyebrow__label">Results &mdash; simulation</span>
+          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
+        </div>
+        <h2 class="nise-h2 reveal">The baselines fall. <em>NISE holds.</em></h2>
+        <p class="nise-lead reveal nise-narrow">
+          Sweep test-time depth from clean to saturated and the cliff appears: matched
+          noisy-depth training only softens the descent. NISE stays near the top across the same
+          sweep, preserving a clear margin into the stress-test endpoint.
+        </p>
+
+        <!-- ===================================================================
+             SIM-RESULTS HERO — the corrupted RLBench point cloud the policy
+             consumes. A three.js orbit of one real RLBench PerAct-18 frame
+             (stack_cups, `front` workspace camera) back-projected to a world-
+             frame cloud from the frame's own depth + intrinsics + extrinsics,
+             corrupted by the project's MILD depth-noise model (the same
+             §3 pipeline). Coloured by baked sensor RGB; a labelled toggle wipes
+             between the CORRUPTED cloud (what the policy sees, default) and the
+             CLEAN reference, so the holes (drop-outs) and floaters read as a
+             difference. Behaviour in static/js/simresults3d.js (vendored
+             three.js, ZERO network); styling in static/css/simresults3d.css.
+             Graceful fallback: no-WebGL / reduced-motion keeps the static
+             poster. ids simres-cloud / simres-cloud-toggle / simres-cloud-reset
+             are the JS contract — keep them in sync if editing. -->
+        <div class="simres-block reveal" id="simres-block">
+          <div class="simres-block__head">
+            <span class="simres-block__eyebrow">What the policy consumes</span>
+            <h3 class="simres-block__title">A 3D policy sees this geometry &mdash; not the scene.</h3>
+            <p class="simres-block__intro">
+              This is a real RLBench&nbsp;PerAct-18 frame (<i>stack&nbsp;cups</i>), back-projected
+              to the point cloud a 3D policy ingests, after our
+              <a href="#motivation">mild depth-corruption model</a>. Even at mild sensor noise,
+              edges and thin structures drop out and points jitter off the true surface
+              (floaters): the policy must act on this. Drag to orbit; toggle to the clean
+              reference to see what shifts.
+            </p>
+          </div>
+
+          <figure class="simres-figure">
+            <div class="simres-stage">
+              <div class="simres-cloud" id="simres-cloud" data-cloud="corrupted"
+                   aria-label="Interactive 3D point cloud of a corrupted RLBench stack-cups frame — the geometry a 3D policy consumes under mild depth noise, with edge drop-outs and floaters. Drag to orbit, scroll or pinch to zoom; press C or space to toggle the clean reference, R to reset the view. A static view is shown if 3D is unavailable.">
+                <img class="simres-cloud__poster" src="static/cloud/rlbench_sim_cloud_poster.png"
+                     width="1280" height="800" decoding="async"
+                     alt="Corrupted point cloud of an RLBench stack-cups frame under mild noise: the tabletop and cups show edge drop-outs and a scatter of floating points where the depth model is unreliable.">
+                <div class="simres-chip" aria-hidden="true">
+                  <span class="simres-chip__dot simres-chip__dot--corrupted"></span>
+                  <span id="simres-chip-txt">Corrupted</span>
+                  <span class="simres-verdict simres-verdict--corrupted" id="simres-verdict">what the policy sees</span>
+                </div>
+                <div class="simres-legend" aria-hidden="true">
+                  <span class="simres-legend__head">Corruption cues</span>
+                  <span class="simres-legend__row"><span class="simres-legend__cue simres-legend__cue--holes"></span>Holes &middot; dropped surfaces</span>
+                  <span class="simres-legend__row"><span class="simres-legend__cue simres-legend__cue--floaters"></span>Floaters &middot; wrong depth</span>
+                </div>
+                <span class="simres-cloud__hint">Drag to orbit</span>
+                <div class="simres-controls">
+                  <button type="button" class="simres-btn" id="simres-cloud-reset"
+                          aria-label="Reset the 3D view to the starting angle">
+                    <span class="simres-btn__ico" aria-hidden="true">&#10227;</span><span class="simres-btn__lbl">Reset view</span>
+                  </button>
+                  <button type="button" class="simres-btn" id="simres-cloud-toggle" aria-pressed="false"
+                          aria-label="Showing the Corrupted cloud. Activate to show the Clean reference cloud.">
+                    <span class="simres-btn__ico" aria-hidden="true">&#8644;</span><span class="simres-btn__lbl">Clean reference</span>
+                  </button>
+                </div>
+                <span class="simres-sr" aria-live="polite"></span>
+              </div>
+            </div>
+            <figcaption class="simres-cap">
+              <b>The geometry a 3D policy actually consumes.</b> A real RLBench&nbsp;PerAct-18
+              frame (<i>stack&nbsp;cups</i>, <span class="lbl">front</span> workspace camera) under
+              our <b>mild</b> depth-corruption model &mdash; the same model swept in
+              &sect;3. Even mild noise drops edges and scatters floaters; toggle to the clean
+              reference to see the same scene before corruption. <i>And here is what that
+              corruption does to every policy &darr;</i>
+            </figcaption>
+          </figure>
+        </div>
+
+        <!-- INTERACTIVE cliff chart — engine owns data, legend, panel numerals,
+             margin brackets, sensor-band footnote, and the descend animation. -->
+        <div class="nise-chart-shell reveal">
+          <div id="nise-chart-cliff"></div>
+        </div>
+        <p class="nise-chart-caption reveal">
+          Task-averaged success under clean, mild, and saturated depth corruption (Table 2).
+          Boxes show <b>mean &plusmn; one standard deviation across three independent training
+          runs</b>. All rows use noise-aware training; on RLBench, 3DDA, SAM2Act, and NISE
+          share an equal-probability mixture of clean, mild, and saturated depth.
+        </p>
+
+      </div>
+    </section>
+
+    <hr class="nise-rule">
+
+    <!-- ====================== RESULTS — real robot (06) =============== -->
+    <section class="nise-section" id="real-robot">
+      <div class="nise-wrap">
+        <div class="nise-eyebrow reveal">
+          <span class="nise-eyebrow__num">06</span>
+          <span class="nise-eyebrow__label">Results &mdash; real robot</span>
+          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
+        </div>
+        <h2 class="nise-h2 reveal">Transparent and reflective, on <em>real hardware</em>.</h2>
+        <p class="nise-lead reveal nise-narrow">
+          We take NISE off the benchmark and onto two robots, with the exact object classes that
+          break depth: glass, gloss, and thin metal.
+        </p>
+
+        <!-- setup figure -->
+        <figure class="nise-figure nise-setup reveal">
+          <div class="nise-figure__frame">
+            <img src="static/images/setup_camera_ready_v2.png" width="1600" height="630"
+                 alt="Camera-ready real-robot setup: single-arm UR5e on the left with Azure Kinect, RealSense D455, and wrist-mounted D405; bimanual UR3e on the right with labeled RealSense D455 and D405 cameras.">
+          </div>
+          <figcaption class="nise-figure__cap">
+            <b>Real-robot setup.</b> Single-arm UR5e (left) and bimanual UR3e (right).
+            Camera labels identify Azure Kinect and RealSense D455/D405.
+          </figcaption>
+        </figure>
+
+        <!-- INTERACTIVE grouped bars — engine owns data, legend, group pills,
+             CI footnote, and the bar-grow animation. -->
+        <div class="nise-chart-shell reveal">
+          <div id="nise-chart-realrobot"></div>
+        </div>
+        <p class="nise-chart-caption reveal">
+          Per-task success rate across both robots. <b>Error bars are Wilson 95% confidence
+          intervals over 30 trials per task and method.</b> For every task, NISE clears the best
+          baseline by a wide margin.
+        </p>
+
+        <!-- FIVE per-task RGB<->Spectral_r-depth sliders (one camera per task,
+             colorized sensor depth; drag the divider). gear/pipe/pour = side view,
+             petri/acrylic = D405 wrist. Assets: static/{videos,images}/rr_* (+ petri
+             reuses the §3 petri asset). Built by website/_build/slider/realrobot_render.py. -->
+        <div class="nise-tiles">
+
+          <!-- VIDEO SLOT: Assemble the Gear | replace .video-poster with <video> -->
+          <figure class="nise-tile reveal">
+            <span class="nise-tile__group">Single-arm · UR5e</span>
+            <div class="nise-slider"
+                 data-base="static/images/rr_gear" data-video="static/videos/rr_gear"
+                 data-poster="static/images/rr_gear_rgb.png" data-cam="side"
+                 data-label-rgb="RGB" data-aspect="1/1" data-width="768" data-height="768" data-start="50"
+                 data-alt-rgb="Side-camera RGB of the single-arm gear-assembly demo."
+                 data-alt-depth="Colorized sensor depth (Spectral_r) of the gear scene; reflective metal and edges drop into holes."></div>
+            <figcaption class="nise-tile__meta">
+              <p class="nise-tile__name">Assemble the Gear</p>
+              <span class="nise-tile__material"><span class="icon"><i class="fas fa-circle-nodes"></i></span>reflective / specular gear</span>
+            </figcaption>
+          </figure>
+
+          <!-- VIDEO SLOT: Remove the Petri Lid | replace .video-poster with <video> -->
+          <figure class="nise-tile reveal">
+            <span class="nise-tile__group">Single-arm · UR5e</span>
+            <div class="nise-slider"
+                 data-base="static/images/petri" data-video="static/videos/petri"
+                 data-poster="static/images/petri_rgb.png" data-cam="D405 wrist"
+                 data-label-rgb="RGB" data-aspect="1/1" data-width="768" data-height="768" data-start="50"
+                 data-alt-rgb="D405 wrist RGB of the petri-lid removal demo."
+                 data-alt-depth="Colorized sensor depth (Spectral_r); the transparent lid and rim drop into holes and unreliable surfaces."></div>
+            <figcaption class="nise-tile__meta">
+              <p class="nise-tile__name">Remove the Petri Lid</p>
+              <span class="nise-tile__material"><span class="icon"><i class="fas fa-flask"></i></span>transparent lid &amp; rim</span>
+            </figcaption>
+          </figure>
+
+          <!-- VIDEO SLOT: Insert the Metal Pipe | replace .video-poster with <video> -->
+          <figure class="nise-tile reveal">
+            <span class="nise-tile__group">Single-arm · UR5e</span>
+            <div class="nise-slider"
+                 data-base="static/images/rr_pipe" data-video="static/videos/rr_pipe"
+                 data-poster="static/images/rr_pipe_rgb.png" data-cam="side"
+                 data-label-rgb="RGB" data-aspect="1/1" data-width="768" data-height="768" data-start="50"
+                 data-alt-rgb="Side-camera RGB of the metal-pipe insertion demo."
+                 data-alt-depth="Colorized sensor depth (Spectral_r); the reflective metal pipe and socket drop into holes."></div>
+            <figcaption class="nise-tile__meta">
+              <p class="nise-tile__name">Insert the Metal Pipe</p>
+              <span class="nise-tile__material"><span class="icon"><i class="fas fa-screwdriver-wrench"></i></span>reflective metal, tight insertion</span>
+            </figcaption>
+          </figure>
+
+          <!-- VIDEO SLOT: Pour Test Tube into Mortar | replace .video-poster with <video> -->
+          <figure class="nise-tile reveal">
+            <span class="nise-tile__group">Bimanual · UR3e</span>
+            <div class="nise-slider"
+                 data-base="static/images/rr_pour" data-video="static/videos/rr_pour"
+                 data-poster="static/images/rr_pour_rgb.png" data-cam="side"
+                 data-label-rgb="RGB" data-aspect="1/1" data-width="768" data-height="768" data-start="50"
+                 data-alt-rgb="Side-camera RGB of the bimanual pour-test-tube-into-mortar demo."
+                 data-alt-depth="Colorized sensor depth (Spectral_r); the transparent test tube drops into holes and distorted surfaces."></div>
+            <figcaption class="nise-tile__meta">
+              <p class="nise-tile__name">Pour Test Tube into Mortar</p>
+              <span class="nise-tile__material"><span class="icon"><i class="fas fa-flask"></i></span>transparent tube</span>
+            </figcaption>
+          </figure>
+
+          <!-- VIDEO SLOT: Vision-Sorted Gear Collection | replace .video-poster with <video> -->
+          <figure class="nise-tile reveal">
+            <span class="nise-tile__group">Bimanual · UR3e</span>
+            <div class="nise-slider"
+                 data-base="static/images/rr_acrylic" data-video="static/videos/rr_acrylic"
+                 data-poster="static/images/rr_acrylic_rgb.png" data-cam="D405 wrist"
+                 data-label-rgb="RGB" data-aspect="1/1" data-width="768" data-height="768" data-start="50"
+                 data-alt-rgb="D405 wrist RGB of the vision-sorted gear-collection demo (clear acrylic dividers)."
+                 data-alt-depth="Colorized sensor depth (Spectral_r); the clear acrylic surfaces drop into holes."></div>
+            <figcaption class="nise-tile__meta">
+              <p class="nise-tile__name">Vision-Sorted Gear Collection</p>
+              <span class="nise-tile__material"><span class="icon"><i class="fas fa-circle-nodes"></i></span>reflective gears, visual partition</span>
+            </figcaption>
+          </figure>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================== FOOTER ============================= -->
+  <footer class="nise-footer">
+    <div class="nise-wrap nise-footer__inner">
+      <span class="nise-footer__brand"><span class="sc">NISE</span> &mdash; CoRL 2026 Spotlight.</span>
+      <span class="nise-footer__credit">Website template adapted from <a href="https://nerfies.github.io/">Nerfies</a>
+        (<a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC BY-SA 4.0</a>).
+        <a href="static/licenses/README.txt">Third-party notices</a>.</span>
+    </div>
+  </footer>
+
+  <!-- Chart engine (auto-renders into #nise-chart-cliff + #nise-chart-realrobot) -->
+  <script src="static/js/charts.js?v=camera-ready-20261013"></script>
+  <!-- Tiny page behaviours: hero load, scroll-reveal, scroll-spy, burger, copy -->
+  <script src="static/js/nise.js"></script>
+  <!-- Interactive pipeline overlay: hover / tap / focus a component for its rationale -->
+  <script src="static/js/pipeline.js"></script>
+  <!-- RGB<->depth comparison sliders: auto-upgrades every .nise-slider on load -->
+  <script src="static/js/slider.js"></script>
+  <!-- §3 depth-corruption block: links the 01/02/03 chips + legend to the real-
+       depth atlas overlays, and drives the sim severity sweep + family build-up.
+       Reads embedded JSON locally (no fetch) so it works from a file:// open. -->
+  <script src="static/js/noise.js"></script>
+  <!-- Vendored three.js (core + PLYLoader + OrbitControls), bundled as ONE
+       CLASSIC script that publishes window.__NISE_THREE__. Classic (not a module)
+       so the GCVSS block works when index.html is opened as a bare file:// URL,
+       where Chromium CORS-blocks ES module scripts from the 'null' origin. ZERO
+       network at runtime. Must load BEFORE gcvss3d.js. -->
+  <script src="static/vendor/three/three.bundle.js"></script>
+  <!-- The co-registered point cloud, base64-embedded as data: URLs
+       (petri = window.__NISE_GCVSS_CLOUDS__; D405 wrist + Kinect side-top).
+       data: URLs load through three's PLYLoader even from the file:// 'null' origin,
+       where a fetch of a relative .ply is CORS-blocked — so the cloud orbits offline.
+       Must load BEFORE gcvss3d.js. The gear scene is archived (its data file
+       static/cloud/gcvss_gear_clouds.data.js is no longer loaded). -->
+  <script src="static/cloud/gcvss_clouds.data.js"></script>
+  <!-- GCVSS interactive 3D block: orbit the co-registered clouds + warp reveal.
+       Classic script; reads three.js from window.__NISE_THREE__ and the clouds
+       from window.__NISE_GCVSS_CLOUDS__; ZERO network. -->
+  <script src="static/js/gcvss3d.js"></script>
+  <!-- GM3A dampening-field 3D block: orbit the real grasp cloud coloured by the
+       GM3A per-point dampening coefficient; toggle vanilla 3D-RoPE vs GM3A.
+       Classic script; reads three.js from window.__NISE_THREE__ and the cloud
+       from window.__NISE_GM3A_CLOUD__; ZERO network. Must load AFTER three.bundle.js. -->
+  <script src="static/cloud/gm3a_cloud.data.js"></script>
+  <script src="static/js/gm3a3d.js"></script>
+  <script src="static/cloud/rlbench_sim_cloud.data.js"></script>
+  <script src="static/js/simresults3d.js"></script>
+</body>
+</html>

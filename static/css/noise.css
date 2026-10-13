@@ -1,0 +1,695 @@
+/* ============================================================================
+   NISE supplementary site — §3 depth-corruption block (custom design layer).
+   Loaded LAST, after nise.css + slider.css, so it inherits the design tokens
+   (--ink, --rule, --rule-2, --radius-pill, --font-body, --shadow-*, --ease …)
+   and reads with the RGB<->depth slider that sits directly above it. No external
+   assets, no network, no dependencies. Offline-safe.
+
+   THREE coordinated parts under one §3 block, in the controlled-diagnostic
+   posture (the copy carries the defense; this CSS only carries the look):
+
+     A. CORRUPTION ATLAS  — the three failure modes highlighted on ONE real raw
+        depth frame. The existing 01/02/03 chips become interactive toggles:
+        hover / tap / focus a chip glows its region(s) on the depth frame
+        (.noise-atlas, driven by static/js/noise.js + an embedded JSON block).
+     B. SEVERITY DEMO     — clean -> mild -> (moderate) -> saturated cross-fade
+        slider + a per-family build-up (+holes -> +edge -> +wrong), both rendered
+        from the ACTUAL corruption pipeline's output frames (.noise-demo).
+     C. SIM<->REAL BRIDGE — simulated-corrupted patch beside the real-corrupted
+        patch of the same failure mode, captioned honestly per-mode (.noise-bridge).
+
+   The chrome is deliberately quiet (Noto Sans, white surface, ink hairlines);
+   the inferno depth imagery carries the colour, matching the slider/warp blocks.
+   The chip accent dots (cool blue / amber / magenta) are the ONLY tints, and
+   they exactly match the glow-layer colours baked into the overlays.
+   ========================================================================= */
+
+/* ----------------------------------------------------- shared block frame */
+.noise-block {
+  margin-top: clamp(2.4rem, 5vw, 3.4rem);
+}
+.noise-block__head {
+  text-align: center;
+  max-width: var(--maxw-narrow, 820px);
+  margin: 0 auto 1.4rem;
+}
+.noise-block__eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted, #767676);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.noise-block__title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 2.6vw, 1.5rem);
+  line-height: 1.22;
+  letter-spacing: -0.008em;
+  color: var(--ink, #0a0a0a);
+  margin: 0 auto 0.6rem;
+  max-width: 60ch;          /* 30ch->52ch->60ch: sub-block titles were still wrapping narrow in the middle */
+  text-wrap: balance;
+}
+.noise-block__intro {
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--ink-soft, #4a4a4a);
+  margin: 0 auto;
+  max-width: var(--maxw-narrow);  /* match the block head + the §Motivation .nise-narrow column (no inset) */
+}
+.noise-block__intro strong { color: var(--ink, #0a0a0a); font-weight: 700; }
+
+/* the controlled-diagnostic posture line — a quiet, confident scope statement
+   set apart from the body so it reads as a stated boundary, not an apology. */
+.noise-posture {
+  margin: 1.3rem auto 0;
+  max-width: var(--maxw-narrow, 820px);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  background: var(--surface, #fafafa);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: 12px;
+  padding: 0.85rem 1.05rem;
+}
+.noise-posture__mark {
+  flex: none;
+  margin-top: 0.05rem;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink, #0a0a0a);
+  color: #fff;
+  font-size: 0.78rem;
+}
+.noise-posture__mark .icon { color: #fff; }
+.noise-posture__text {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-soft, #4a4a4a);
+  margin: 0;
+  text-align: left;
+}
+.noise-posture__text b { color: var(--ink, #0a0a0a); font-weight: 700; }
+
+/* ===================================================================== PART A
+   CORRUPTION ATLAS — annotate the three failure modes on a real raw-depth frame.
+   Layout: the depth frame (left / top) + a legend rail (right / bottom). The
+   existing 01/02/03 chips drive the overlays; the legend mirrors which mode is
+   active and labels auto-detected vs illustrative honestly. */
+.noise-atlas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(1.1rem, 2.6vw, 1.8rem);
+  align-items: start;
+  margin: 1.6rem auto 0;
+  max-width: var(--maxw, 1000px);
+}
+
+/* the depth stage: the colorized raw frame + stacked overlay glow layers */
+.noise-atlas__stage { margin: 0; }
+.noise-atlas__frame {
+  position: relative;
+  width: 100%;
+  /* native 256x256 (display 768x768) -> square; reserve height before decode */
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #0b0b14;             /* matches the holes colour so any letterbox blends */
+  border: 1px solid var(--rule, #ededed);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft, 0 1px 2px rgba(10,10,10,0.04), 0 10px 30px -22px rgba(10,10,10,0.35));
+}
+.noise-atlas__base,
+.noise-atlas__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  margin: 0;
+  /* the overlays are pre-aligned to the base; nearest-neighbour keeps the
+     pixel masks crisp at the upscaled display size. */
+  image-rendering: pixelated;
+}
+.noise-atlas__base { z-index: 0; image-rendering: auto; }
+.noise-atlas__overlay {
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 220ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+  pointer-events: none;
+}
+.noise-atlas__overlay.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .noise-atlas__overlay { transition: none; }
+}
+
+/* a small corner tag mirroring the slider's "Raw depth" tag (same chrome) */
+.noise-atlas__tag {
+  position: absolute;
+  top: 10px; left: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink, #0a0a0a);
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: 6px;
+  padding: 0.24rem 0.5rem;
+  pointer-events: none;
+}
+
+/* a quiet "hover a mode" hint, bottom-centre, like the slider hint */
+.noise-atlas__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 3;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink, #0a0a0a);
+  background: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: var(--radius-pill, 290486px);
+  padding: 0.2rem 0.6rem;
+  pointer-events: none;
+  opacity: 0.92;
+  transition: opacity 200ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+.noise-atlas.is-touched .noise-atlas__hint { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .noise-atlas__hint { transition: none; } }
+
+/* the legend rail — one row per mode; the active mode's row lifts. The rail is
+   also keyboard-operable as buttons so the atlas is usable without the chips. */
+.noise-atlas__legend {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.noise-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  text-align: left;
+  background: var(--surface, #fafafa);
+  border: 1px solid var(--rule, #ededed);
+  border-radius: 11px;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--ink-soft, #4a4a4a);
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 170ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              background 170ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              box-shadow 170ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              transform 170ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+.noise-legend-item:hover,
+.noise-legend-item:focus-visible,
+.noise-legend-item.is-active {
+  background: #fff;
+  border-color: var(--accent, rgba(10,10,10,0.42));
+  box-shadow: 0 1px 2px rgba(10,10,10,0.05), 0 10px 28px -20px rgba(10,10,10,0.45);
+  color: var(--ink, #0a0a0a);
+}
+.noise-legend-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 143, 222, 0.22);
+}
+.noise-legend-item__swatch {
+  flex: none;
+  margin-top: 0.18rem;
+  width: 16px; height: 16px;
+  border-radius: 5px;
+  background: var(--accent, #767676);
+  box-shadow: inset 0 0 0 1px rgba(10,10,10,0.12);
+}
+.noise-legend-item__txt { min-width: 0; }
+.noise-legend-item__label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.noise-legend-item__num {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--muted, #767676);
+  font-weight: 600;
+}
+.noise-legend-item__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink, #0a0a0a);
+  line-height: 1.25;
+}
+.noise-legend-item__note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-soft, #4a4a4a);
+}
+/* the detection badge: AUTO (exact / example) vs ILLUSTRATIVE — honesty marker */
+.noise-legend-item__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #4a4a4a);
+  background: var(--surface-2, #f5f5f5);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: var(--radius-pill, 290486px);
+  padding: 0.12rem 0.5rem;
+}
+.noise-legend-item__badge .icon { font-size: 0.9em; color: var(--muted, #767676); }
+
+/* per-mode accent (mirrors the baked glow-layer colours exactly) */
+.noise-legend-item[data-mode="01"] { --accent: #4aa2ff; }
+.noise-legend-item[data-mode="02"] { --accent: #e0a800; }   /* amber, darkened for AA on white */
+.noise-legend-item[data-mode="03"] { --accent: #ff5c8a; }
+
+/* ===================================================================== PART B
+   SEVERITY DEMO — the corruption pipeline shown on simulated depth. Two stacked
+   widgets share one card: a severity cross-fade slider (clean..saturated) and a
+   per-family build-up strip (+holes -> +edge -> +wrong). All frames are baked
+   from the real pipeline. */
+.noise-demo {
+  margin: 1.6rem auto 0;
+  max-width: var(--maxw, 1000px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1.1rem, 2.6vw, 1.8rem);
+  align-items: start;
+}
+.noise-demo__panel {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--rule, #ededed);
+  border-radius: 14px;
+  padding: clamp(14px, 2vw, 20px);
+  box-shadow: var(--shadow-soft, 0 1px 2px rgba(10,10,10,0.04), 0 10px 30px -22px rgba(10,10,10,0.35));
+}
+.noise-demo__label {
+  display: block;
+  margin-bottom: 0.8rem;
+}
+.noise-demo__kicker {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted, #767676);
+  margin-bottom: 0.18rem;
+}
+.noise-demo__name {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--ink, #0a0a0a);
+  line-height: 1.22;
+}
+
+/* the sim frame stage (shared by both widgets) */
+.noise-demo__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #0b0b14;
+  border: 1px solid var(--rule, #ededed);
+  border-radius: 11px;
+}
+.noise-demo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  margin: 0;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 260ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+.noise-demo__img.is-shown { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .noise-demo__img { transition: none; } }
+
+/* the floating per-frame readout (valid% / RMSE) — quiet corner chip */
+.noise-demo__readout {
+  position: absolute;
+  top: 10px; right: 10px;
+  z-index: 3;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+  color: var(--ink, #0a0a0a);
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: 6px;
+  padding: 0.22rem 0.46rem;
+  pointer-events: none;
+  white-space: nowrap;
+  font-feature-settings: "tnum" 1;
+}
+.noise-demo__readout b { font-weight: 700; }
+
+/* severity range slider — native input, restyled to the site chrome */
+.noise-demo__control { margin-top: 0.85rem; }
+.noise-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--rule-2, #e3e3e3);
+  outline: none;
+  cursor: pointer;
+  margin: 0.4rem 0 0.2rem;
+}
+.noise-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--rule-2, #e3e3e3);
+  box-shadow: 0 1px 4px rgba(10,10,10,0.18), 0 4px 12px -6px rgba(10,10,10,0.4);
+  cursor: pointer;
+  transition: transform 130ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+.noise-range::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--rule-2, #e3e3e3);
+  box-shadow: 0 1px 4px rgba(10,10,10,0.18), 0 4px 12px -6px rgba(10,10,10,0.4);
+  cursor: pointer;
+}
+.noise-range:hover::-webkit-slider-thumb,
+.noise-range:focus-visible::-webkit-slider-thumb { transform: scale(1.08); }
+.noise-range:focus-visible {
+  box-shadow: 0 0 0 3px rgba(31, 143, 222, 0.22);
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .noise-range::-webkit-slider-thumb { transition: none; }
+}
+
+/* severity tick labels under the slider (clean | mild | moderate | saturated) */
+.noise-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  list-style: none;
+  padding: 0;
+}
+.noise-ticks li {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted, #767676);
+  cursor: pointer;
+  transition: color 150ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+  white-space: nowrap;
+}
+.noise-ticks li:hover { color: var(--ink, #0a0a0a); }
+.noise-ticks li.is-active { color: var(--ink, #0a0a0a); font-weight: 700; }
+
+/* per-family build-up — a row of toggle pills that step the stage through the
+   single-stage outputs (+holes -> +edge -> +wrong) */
+.noise-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+.noise-step {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft, #4a4a4a);
+  background: var(--surface, #fafafa);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: var(--radius-pill, 290486px);
+  padding: 0.38rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 150ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              background 150ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              color 150ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+.noise-step:hover { color: var(--ink, #0a0a0a); border-color: var(--accent, rgba(10,10,10,0.42)); }
+.noise-step.is-active {
+  color: #fff;
+  background: var(--ink, #0a0a0a);
+  border-color: var(--ink, #0a0a0a);
+}
+.noise-step:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(31, 143, 222, 0.22); }
+.noise-step__dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--accent, #767676);
+  box-shadow: inset 0 0 0 1px rgba(10,10,10,0.12);
+}
+.noise-step.is-active .noise-step__dot { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4); }
+.noise-step[data-step="0"] { --accent: #4aa2ff; }
+.noise-step[data-step="1"] { --accent: #e0a800; }
+.noise-step[data-step="2"] { --accent: #ff5c8a; }
+
+.noise-demo__cap {
+  margin: 0.7rem 0 0;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-soft, #4a4a4a);
+  text-align: left;
+}
+.noise-demo__cap b { color: var(--ink, #0a0a0a); font-weight: 700; font-style: italic; }
+
+/* ===================================================================== PART C
+   SIM<->REAL BRIDGE — one row per failure mode: the simulated-corrupted patch
+   beside the real-corrupted patch. Honest per-mode: 01/02 caption "both exhibit
+   X"; 03 is presented in parallel without a pixel-match claim. */
+.noise-bridge {
+  margin: 1.6rem auto 0;
+  max-width: var(--maxw, 1000px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1rem, 2.4vw, 1.5rem);
+}
+.noise-bridge__col {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.noise-bridge__mode {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+.noise-bridge__dot {
+  flex: none;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent, #767676);
+  align-self: center;
+  box-shadow: inset 0 0 0 1px rgba(10,10,10,0.12);
+}
+.noise-bridge__name {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink, #0a0a0a);
+  line-height: 1.2;
+}
+.noise-bridge__col[data-mode="01"] { --accent: #4aa2ff; }
+.noise-bridge__col[data-mode="02"] { --accent: #e0a800; }
+.noise-bridge__col[data-mode="03"] { --accent: #ff5c8a; }
+
+.noise-bridge__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.noise-bridge__cell { position: relative; margin: 0; }
+.noise-bridge__cell img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  image-rendering: pixelated;
+  background: #0b0b14;
+  border: 1px solid var(--rule, #ededed);
+  border-radius: 9px;
+}
+.noise-bridge__cell--real img { image-rendering: auto; }   /* the real frame is smoother */
+.noise-bridge__celltag {
+  position: absolute;
+  bottom: 6px; left: 6px;
+  font-family: var(--font-body);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink, #0a0a0a);
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  border: 1px solid var(--rule-2, #e3e3e3);
+  border-radius: 5px;
+  padding: 0.12rem 0.4rem;
+  pointer-events: none;
+}
+.noise-bridge__verdict {
+  margin-top: 0.55rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft, #4a4a4a);
+  text-align: left;
+}
+.noise-bridge__verdict b { color: var(--ink, #0a0a0a); font-weight: 700; }
+/* the honesty tag: "Same family" (not "they match") for the curated 03 mode */
+.noise-bridge__verdict .tag {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #4a4a4a);
+  vertical-align: 0.05em;
+}
+
+/* the one-line bridge to the cliff + the appendix pointer */
+.noise-tieline {
+  margin: 1.8rem auto 0;
+  max-width: var(--maxw-narrow, 820px);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-soft, #4a4a4a);
+  text-align: center;
+  border-top: 1px solid var(--rule, #ededed);
+  padding-top: 1.1rem;
+}
+.noise-tieline b { color: var(--ink, #0a0a0a); font-weight: 700; }
+.noise-tieline .noise-appendix {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted, #767676);
+}
+.noise-tieline .noise-appendix .icon { font-size: 0.85em; color: var(--muted, #767676); margin-right: 0.3rem; }
+
+/* visually-hidden live region for screen-reader announcements */
+.noise-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* make the existing 01/02/03 chips read as interactive controls once JS wires
+   them (noise.js sets role=button + tabindex). A faint accent dot precedes the
+   numeral and the chip lifts on hover/active to signal "this does something". */
+.nise-chip.is-interactive {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 160ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              background 160ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              box-shadow 160ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1)),
+              color 160ms var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+}
+.nise-chip.is-interactive::before {
+  content: "";
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent, #767676);
+  box-shadow: inset 0 0 0 1px rgba(10,10,10,0.12);
+  align-self: center;
+  margin-right: -0.05rem;
+}
+.nise-chip.is-interactive[data-mode="01"] { --accent: #4aa2ff; }
+.nise-chip.is-interactive[data-mode="02"] { --accent: #e0a800; }
+.nise-chip.is-interactive[data-mode="03"] { --accent: #ff5c8a; }
+.nise-chip.is-interactive:hover,
+.nise-chip.is-interactive:focus-visible,
+.nise-chip.is-interactive.is-active {
+  background: #fff;
+  border-color: var(--accent, rgba(10,10,10,0.42));
+  box-shadow: 0 1px 2px rgba(10,10,10,0.05), 0 8px 22px -16px rgba(10,10,10,0.45);
+  color: var(--ink, #0a0a0a);
+}
+.nise-chip.is-interactive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 143, 222, 0.22);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nise-chip.is-interactive, .noise-legend-item, .noise-step { transition: none; }
+}
+
+/* ----------------------------------------------------------- responsive */
+@media (max-width: 860px) {
+  .noise-atlas { grid-template-columns: 1fr; }
+  .noise-atlas__frame { max-width: 480px; margin-inline: auto; }
+  .noise-demo { grid-template-columns: 1fr; }
+  .noise-bridge { grid-template-columns: 1fr; max-width: 520px; }
+}
+@media (max-width: 680px) {
+  .noise-block__intro, .noise-posture__text { text-align: left; }
+  .noise-demo__cap, .noise-bridge__verdict { text-align: left; }
+  .noise-tieline { text-align: left; }
+}
+@media (max-width: 420px) {
+  .noise-ticks li { font-size: 0.64rem; }
+  .noise-step { font-size: 0.72rem; padding: 0.34rem 0.55rem; }
+}

@@ -1,0 +1,280 @@
+/* ============================================================================
+   NISE supplementary site — GM3A dampening-field 3D block (custom layer).
+   Loaded LAST, AFTER nise.css (+ gcvss3d.css), so it inherits the design
+   tokens (--ink, --rule, --surface, --font-body, --shadow-*, --ease, --nise …).
+   No external assets, no network; offline-safe; degrades to a static poster
+   when WebGL is unavailable or the user prefers reduced motion.
+
+   Sibling of the GCVSS block, placed directly below it in §Method as the
+   visual evidence for the GM3A card. It is an ANIMATED, CLEARLY-CONCEPTUAL
+   walk-through of the GM3A procedure (5 steps) over the real grasp scene on a
+   DARK stage: exact points -> position uncertainty blooms (sensor prior, real)
+   -> per-token adaptation (illustrative) -> dampening (turbo α; bright=trusted,
+   dark=attenuated) -> result. The sensor prior is real; the per-token material/
+   boundary adaptation is an illustrative concept, labeled as such on the site.
+   JS contract (ids the JS binds to — keep in sync if editing):
+     #gm3a-cloud            the stage (orbit + procedure)
+     #gm3a-cloud-play       play/pause autoplay
+     #gm3a-cloud-replay     restart from step 1
+     #gm3a-cloud-rgb        Sensor-RGB overlay (semi-transparent real colour)
+     #gm3a-cloud-reset      reset camera
+     .gm3a-step[data-step]  the clickable step pills (0..4) below the stage
+   (#gm3a-cloud-mode is an OPTIONAL legacy end-to-end toggle; absent by default.)
+   ========================================================================= */
+
+.gm3a-block {
+  --gm-ink:    var(--ink, #0a0a0a);
+  --gm-soft:   var(--ink-soft, #4a4a4a);
+  --gm-muted:  var(--muted, #767676);
+  --gm-rule:   var(--rule, #ededed);
+  --gm-font:   var(--font-body, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
+  --gm-ease:   var(--ease, cubic-bezier(0.22, 0.61, 0.36, 1));
+  --gm-radius: var(--radius-pill, 290486px);
+  --gm-stage:  #0a0a12;                 /* dark viewer backdrop */
+  --gm-accent: var(--nise, #C4622D);    /* NISE orange */
+  /* jet colormap (matches the cloud's alpha LUT): attenuated (left) = blue -> trusted
+     (right) = red; near grasp (high alpha) reads red. The robot arm is cooled to the
+     green/yellow middle via an illustrative sigma in the builder, not via the colormap. */
+  --gm-jet: linear-gradient(90deg,
+      #00007f 0%, #0000f1 10%, #004cff 20%, #00b0ff 30%, #29ffcd 40%, #7cff79 50%,
+      #cdff29 60%, #ffc400 70%, #ff6700 80%, #f10700 90%, #7f0000 100%);
+
+  margin: 2.4rem auto 0;
+  max-width: var(--maxw, 1000px);
+}
+
+/* centered sub-header (keeps §Method rhythm without a competing <h2>) */
+.gm3a-block__head { text-align: center; margin: 0 auto 1.2rem; max-width: var(--maxw-narrow, 820px); }
+.gm3a-block__eyebrow {
+  font-family: var(--gm-font); font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--gm-muted);
+  display: block; margin-bottom: 0.5rem;
+}
+.gm3a-block__title {
+  font-family: var(--gm-font); font-weight: 700; font-size: 1.2rem;
+  line-height: 1.25; letter-spacing: -0.006em; color: var(--gm-ink); margin: 0 0 0.5rem;
+}
+.gm3a-block__intro {
+  font-family: var(--gm-font); font-size: 0.97rem; line-height: 1.6;
+  color: var(--gm-soft); margin: 0 auto; max-width: var(--maxw-narrow, 820px);
+}
+
+.gm3a-figure { margin: 0; }
+
+/* media frame (matches the gcvss stage chrome, but dark inside) */
+.gm3a-stage {
+  position: relative;
+  background: var(--gm-stage);
+  border: 1px solid var(--gm-rule);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft, 0 1px 2px rgba(10,10,10,0.04), 0 10px 30px -22px rgba(10,10,10,0.35));
+}
+.gm3a-cloud {
+  position: relative; width: 100%;
+  aspect-ratio: 16 / 10;               /* matches the 1280x800 poster -> zero layout shift */
+  background: var(--gm-stage);
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none;
+  touch-action: pan-y;                 /* page scroll passes through; canvas claims its own */
+  outline: none;
+}
+.gm3a-cloud.is-grabbing { cursor: grabbing; }
+.gm3a-cloud:focus-visible { box-shadow: inset 0 0 0 3px rgba(196, 98, 45, 0.5); }
+.gm3a-cloud > canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
+
+/* poster shown until WebGL inits — and permanently on fallback */
+.gm3a-cloud__poster {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block; margin: 0; z-index: 0;
+  transition: opacity 320ms var(--gm-ease);
+}
+.gm3a-cloud.is-live .gm3a-cloud__poster { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .gm3a-cloud__poster { transition: none; } }
+
+/* colorbar legend (the plasma key), top-left over the dark stage */
+.gm3a-legend {
+  position: absolute; top: 10px; left: 10px; z-index: 3;
+  display: flex; flex-direction: column; gap: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(12, 12, 20, 0.6);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+  pointer-events: none;
+}
+.gm3a-legend__head {
+  font-family: var(--gm-font); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.66);
+}
+.gm3a-legend__bar {
+  width: 132px; height: 9px; border-radius: 3px;
+  background: var(--gm-jet);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.gm3a-legend__scale {
+  display: flex; justify-content: space-between;
+  font-family: var(--gm-font); font-size: 0.62rem; font-weight: 600; color: rgba(255, 255, 255, 0.78);
+}
+
+/* quiet drag hint, bottom-left */
+.gm3a-cloud__hint {
+  position: absolute; left: 10px; bottom: 10px; z-index: 3;
+  font-family: var(--gm-font); font-size: 0.62rem; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 600; color: #fff;
+  background: rgba(12, 12, 20, 0.58);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: var(--gm-radius);
+  padding: 0.2rem 0.55rem; pointer-events: none; opacity: 0.92;
+  transition: opacity 220ms var(--gm-ease);
+}
+.gm3a-cloud.is-grabbing .gm3a-cloud__hint { opacity: 0; }
+.gm3a-cloud:not(.is-live) .gm3a-cloud__hint { display: none; }
+@media (max-width: 420px) { .gm3a-cloud__hint { display: none; } }
+
+/* side-by-side compare label — only when the Sensor-RGB cloud is shown (left = RGB,
+   right = dampening α). Bottom-centre, between the drag hint and the control bar. */
+.gm3a-rgbtag {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 4;
+  display: none; white-space: nowrap; pointer-events: none;
+  font-family: var(--gm-font); font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.92);
+  background: rgba(12, 12, 20, 0.58);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: var(--gm-radius);
+  padding: 0.2rem 0.6rem;
+}
+.gm3a-rgbtag b { font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.78; }
+.gm3a-cloud.is-rgb-on .gm3a-rgbtag { display: block; }
+.gm3a-cloud:not(.is-live) .gm3a-rgbtag { display: none; }
+@media (max-width: 480px) { .gm3a-rgbtag { font-size: 0.56rem; padding: 0.16rem 0.5rem; } }
+
+/* control bar — Play / Replay / Sensor-RGB / Reset, bottom-right.
+   The procedure step pills live in a separate strip below the stage. */
+.gm3a-controls {
+  position: absolute; right: 10px; bottom: 10px; z-index: 5;
+  display: flex; align-items: center; justify-content: flex-end;
+  flex-wrap: wrap; gap: 0.4rem; max-width: calc(100% - 20px);
+}
+.gm3a-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-family: var(--gm-font); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--gm-ink); background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 8px;
+  padding: 0.32rem 0.6rem; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 150ms var(--gm-ease), color 150ms var(--gm-ease),
+              border-color 150ms var(--gm-ease), box-shadow 150ms var(--gm-ease);
+}
+.gm3a-btn:hover { background: var(--gm-accent); border-color: var(--gm-accent); color: #fff; }
+.gm3a-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(196, 98, 45, 0.36); border-color: var(--gm-accent); }
+.gm3a-btn[aria-pressed="true"] { background: var(--gm-accent); border-color: var(--gm-accent); color: #fff; }
+.gm3a-btn[disabled] { opacity: 0.5; cursor: default; }
+.gm3a-btn__ico { font-size: 0.92em; line-height: 1; }
+
+/* visually-hidden live region */
+.gm3a-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.gm3a-cap {
+  margin: 1.1rem auto 0;
+  font-family: var(--gm-font); font-style: italic; font-size: 0.92rem; line-height: 1.55;
+  color: var(--gm-soft); max-width: var(--maxw-narrow, 820px); text-align: center;
+}
+.gm3a-cap b { color: var(--gm-ink); font-weight: 700; font-style: italic; }
+.gm3a-cap i { font-style: italic; }
+
+/* ===================================================================
+   PROCEDURE EXPLAINER ADDITIONS (animated 5-step GM3A walk-through)
+   =================================================================== */
+
+/* "conceptual illustration" honesty tag — sits in the block head, right of the
+   title row. The whole explainer is a schematic of the mechanism, not measured
+   per-scene data; this tag says so up front. */
+.gm3a-block__tag {
+  display: inline-flex; align-items: center; gap: 0.34rem;
+  margin: 0.15rem auto 0.65rem;
+  font-family: var(--gm-font); font-size: 0.64rem; font-weight: 700;
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--gm-muted);
+  background: var(--surface-2, #f5f5f5);
+  border: 1px solid var(--gm-rule);
+  border-radius: var(--gm-radius);
+  padding: 0.24rem 0.62rem;
+}
+.gm3a-block__tag .gm3a-block__tag-ico { font-size: 0.9em; color: var(--gm-muted); line-height: 1; }
+
+/* in-stage live step caption (top-center): "01 · Exact points" + the sentence.
+   Driven by the live region but visible; never occludes the controls (bottom). */
+.gm3a-caption {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 4; max-width: min(74%, 560px); text-align: center;
+  padding: 0.42rem 0.7rem;
+  background: rgba(12, 12, 20, 0.86);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 10px;
+  pointer-events: none;
+  opacity: 1; transition: opacity 240ms var(--gm-ease);
+}
+.gm3a-caption__n {
+  font-family: var(--gm-font); font-size: 0.58rem; font-weight: 800;
+  letter-spacing: 0.14em; color: var(--gm-accent); display: block; margin-bottom: 0.12rem;
+}
+.gm3a-caption__txt {
+  font-family: var(--gm-font); font-size: 0.78rem; line-height: 1.4; font-weight: 600;
+  color: #fff;
+}
+.gm3a-caption__illus {
+  display: inline-block; margin-left: 0.3rem;
+  font-size: 0.86em; font-weight: 700; font-style: italic;
+  color: #ffd9a8;        /* warm "illustrative" marker, legible on dark */
+}
+.gm3a-cloud:not(.is-live) .gm3a-caption { display: none; }
+@media (max-width: 520px) { .gm3a-caption { max-width: 86%; top: 8px; } .gm3a-caption__txt { font-size: 0.72rem; } }
+
+/* honesty sub-line under the legend: which layers are real vs illustrative */
+.gm3a-legend__note {
+  display: flex; flex-direction: column; gap: 0.12rem; margin-top: 0.28rem;
+  font-family: var(--gm-font); font-size: 0.56rem; line-height: 1.25; color: rgba(255,255,255,0.72);
+}
+.gm3a-legend__note .gm3a-legend__dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.32rem; vertical-align: middle;
+}
+.gm3a-legend__note .gm3a-legend__dot--real { background: #f0f921; }       /* turbo-top, the real prior */
+.gm3a-legend__note .gm3a-legend__dot--illus { background: #ffd9a8; }      /* illustrative marker colour */
+
+/* step strip below the stage (clickable pills; mirrors the GCVSS timeline form) */
+.gm3a-steps {
+  display: flex; align-items: stretch; margin-top: 0.55rem;
+  border: 1px solid var(--gm-rule); border-radius: 10px; overflow: hidden;
+  background: #fff; box-shadow: var(--shadow-soft, 0 1px 2px rgba(10,10,10,0.04));
+}
+.gm3a-cloud.is-static-fallback ~ * .gm3a-steps { /* fallback keeps the strip (it lists the procedure) */ }
+.gm3a-step {
+  flex: 1 1 0; min-width: 0; padding: 0.5rem 0.55rem;
+  font-family: var(--gm-font); font-size: 0.68rem; line-height: 1.3;
+  color: var(--gm-muted); text-align: center; cursor: pointer;
+  border-right: 1px solid var(--gm-rule); background: #fff;
+  transition: background 160ms var(--gm-ease), color 160ms var(--gm-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.gm3a-step:last-child { border-right: 0; }
+.gm3a-step:hover { background: var(--surface-2, #f5f5f5); color: var(--gm-soft); }
+.gm3a-step:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(196,98,45,0.5); }
+.gm3a-step .gm3a-step__n {
+  display: block; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--gm-muted); margin-bottom: 0.2rem;
+}
+.gm3a-step.is-active { color: var(--gm-ink); background: var(--surface, #fafafa); }
+.gm3a-step.is-active .gm3a-step__n { color: var(--gm-accent); }
+.gm3a-step .gm3a-step__illus {
+  display: inline-block; margin-left: 0.22rem; font-size: 0.86em; font-weight: 700; font-style: italic;
+  color: var(--gm-accent);
+}
+.gm3a-cloud.is-static-fallback ~ .gm3a-steps .gm3a-step { cursor: default; }
+@media (prefers-reduced-motion: reduce) { .gm3a-step, .gm3a-caption { transition: none; } }
+@media (max-width: 520px) {
+  .gm3a-step { font-size: 0.6rem; padding: 0.45rem 0.32rem; }
+  .gm3a-step .gm3a-step__n { font-size: 0.54rem; }
+}
+
+@media (max-width: 680px) { .gm3a-block__intro { text-align: left; } }
