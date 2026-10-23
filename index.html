@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="static/css/fonts.css">
   <!-- Chart engine styles + custom design layer (LAST stylesheets) -->
   <link rel="stylesheet" href="static/css/charts.css">
-  <link rel="stylesheet" href="static/css/nise.css?v=hero-20261013">
+  <link rel="stylesheet" href="static/css/nise.css?v=layout-20261021">
   <!-- RGB<->depth comparison slider (inherits nise.css tokens — load AFTER it) -->
   <link rel="stylesheet" href="static/css/slider.css">
   <!-- §3 depth-corruption block: atlas + severity demo + sim<->real bridge
@@ -34,10 +34,12 @@
   <!-- GM3A dampening-field 3D block (inherits nise.css + gcvss3d.css tokens — load AFTER them) -->
   <link rel="stylesheet" href="static/css/gm3a3d.css">
   <link rel="stylesheet" href="static/css/simresults3d.css">
+  <!-- Shared page rhythm, applied after the standalone interactive widgets. -->
+  <link rel="stylesheet" href="static/css/layout.css?v=20261021">
 </head>
 <body class="nise-body">
 
-  <!-- Public project page. Paper and Code links can be added when available. -->
+  <!-- Public paper links are available; Code remains absent until released. -->
 
   <!-- ============================== TOP NAV ============================== -->
   <nav class="nise-nav" aria-label="Section navigation">
@@ -50,6 +52,7 @@
       </button>
       <ul class="nise-nav__links" id="nav-links">
         <li><a href="#abstract"><span>Abstract</span></a></li>
+        <li><a href="#motivation"><span>Depth robustness</span></a></li>
         <li><a href="#method"><span>Method</span></a></li>
         <li><a href="#results"><span>Results</span></a></li>
         <li><a href="#real-robot"><span>Real&nbsp;robot</span></a></li>
@@ -97,10 +100,6 @@
 
       <div class="nise-wrap nise-hero__inner">
 
-        <p class="nise-hero__kicker hero-stagger" style="--d:0ms">
-          <span>3D&nbsp;Manipulation</span> · <span>Depth&nbsp;Robustness</span> · <span>Commodity&nbsp;RGB-D</span>
-        </p>
-
         <h1 class="nise-hero__title hero-stagger" style="--d:90ms">
           Noise-Invariant Spatial Encoding for 3D Manipulation Policies under Depth Corruption
         </h1>
@@ -125,9 +124,19 @@
           <p class="nise-authors__venue">CoRL 2026 <span class="nise-authors__spotlight">Spotlight</span></p>
         </div>
 
-        <!-- (Hero teaser intentionally removed: panel (a)'s qualitative test-tube view
-             now lives in the §3 RGB<->depth slider, and panel (b)'s degradation curves in
-             the §5 interactive cliff chart. Do not re-add a static teaser here.) -->
+        <div class="nise-cta hero-stagger" style="--d:380ms" aria-label="Paper resources">
+          <a class="nise-btn" href="https://arxiv.org/abs/2610.24674" target="_blank" rel="noopener noreferrer">
+            <span class="icon" aria-hidden="true"><i class="ai ai-arxiv"></i></span>
+            <span>arXiv</span>
+          </a>
+          <a class="nise-btn" href="https://arxiv.org/pdf/2610.24674" target="_blank" rel="noopener noreferrer">
+            <span class="icon" aria-hidden="true"><i class="fas fa-file-pdf"></i></span>
+            <span>Paper (PDF)</span>
+          </a>
+        </div>
+
+        <!-- Figure 1a's scene appears in the RGB/depth slider; Figure 1b appears
+             below the motivation section’s introductory text. -->
 
       </div>
     </header>
@@ -136,12 +145,7 @@
 
     <!-- ============================== ABSTRACT (02) ===================== -->
     <section class="nise-section" id="abstract">
-      <div class="nise-wrap nise-narrow">
-        <div class="nise-eyebrow reveal">
-          <span class="nise-eyebrow__num">02</span>
-          <span class="nise-eyebrow__label">Abstract</span>
-          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
-        </div>
+      <div class="nise-wrap">
         <h2 class="nise-h2 reveal">Geometry is the interface &mdash; and the <em>vulnerability</em>.</h2>
         <p class="nise-lead reveal">
           3D manipulation policies derive actions from explicit scene geometry rather than
@@ -222,11 +226,6 @@
     <!-- ===================== MOTIVATION — the cliff (03) ================ -->
     <section class="nise-section nise-section--tint" id="motivation">
       <div class="nise-wrap">
-        <div class="nise-eyebrow reveal">
-          <span class="nise-eyebrow__num">03</span>
-          <span class="nise-eyebrow__label">The depth-corruption cliff</span>
-          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
-        </div>
         <h2 class="nise-h2 reveal">When clean-depth assumptions meet <em>real sensors</em>.</h2>
 
         <div class="nise-narrow">
@@ -251,6 +250,32 @@
             D405 and Azure Kinect; saturated is the stress-test endpoint.
           </p>
         </div>
+
+        <!-- Exact Figure 1b artwork. Separate benchmark crops improve mobile
+             readability. Do not use the legacy chart engine's mount ID here. -->
+        <figure class="nise-cliff-figure reveal" id="depth-cliff">
+          <a class="nise-cliff-figure__image" href="static/images/depth_cliff_camera_ready_v8.png"
+             target="_blank" rel="noopener" aria-label="Open Figure 1b at full resolution">
+            <img class="nise-cliff-figure__wide" src="static/images/depth_cliff_camera_ready_v8.png"
+                 width="1757" height="576" loading="lazy" decoding="async"
+                 alt="Figure 1b: depth-noise robustness on RLBench and MetaWorld. NISE retains higher success as corruption increases. The saturated-noise mean gaps are rounded to +33 and +40 percentage points.">
+            <span class="nise-cliff-figure__stack">
+              <img src="static/images/depth_cliff_rlbench_v8.png" width="940" height="576"
+                   loading="lazy" decoding="async"
+                   alt="RLBench: NISE compared with 3D Diffuser Actor, RVT-2, and SAM2Act across clean, mild, and saturated depth noise; +33 percentage-point mean gap at saturated noise.">
+              <img src="static/images/depth_cliff_metaworld_v8.png" width="807" height="576"
+                   loading="lazy" decoding="async"
+                   alt="MetaWorld: NISE compared with DP3, FlowPolicy, and ManiFlow across clean, mild, and saturated depth noise; +40 percentage-point mean gap at saturated noise.">
+            </span>
+          </a>
+          <figcaption class="nise-chart-caption">
+            <b>Figure 1b.</b> NISE maintains higher success rates as depth corruption increases
+            on RLBench PerAct-18 and MetaWorld. Boxplots illustrate synthetic distributions
+            matched to the reported means and standard deviations, rather than individual
+            measured runs. The +33/+40 pp callouts round the Table 2 mean gaps of
+            <b>+33.2/+40.2 percentage points</b> at saturated noise.
+          </figcaption>
+        </figure>
 
         <!-- =================================================================
              §3 DEPTH-CORRUPTION BLOCK — one coherent unit, read top to bottom:
@@ -293,10 +318,9 @@
         <!-- ----- PART A: corruption atlas on REAL raw depth ----- -->
         <div class="noise-block">
           <div class="noise-block__head">
-            <span class="noise-block__eyebrow">The failure modes, on real depth</span>
             <h3 class="noise-block__title">Three ways commodity depth fails &mdash; on the real sensor.</h3>
             <p class="noise-block__intro">
-              The same raw frame as above, now annotated. Hover, tap, or focus a corruption
+              A real raw-depth frame, annotated. Hover, tap, or focus a corruption
               family to glow exactly where it appears in the sensor&rsquo;s own output. Two of
               the three are detected directly from the depth; the third is an
               <strong>illustrative call-out</strong>, since a plausible-but-wrong surface cannot
@@ -363,7 +387,6 @@
         <!-- ----- PART B: how we model it, on SIMULATED depth ----- -->
         <div class="noise-block">
           <div class="noise-block__head">
-            <span class="noise-block__eyebrow">How we model it</span>
             <h3 class="noise-block__title">A controlled diagnostic, not a simulator.</h3>
             <p class="noise-block__intro">
               On benchmark depth, we inject these same structural failure modes at calibrated
@@ -472,16 +495,10 @@
     <!-- =============================== METHOD (04) ===================== -->
     <section class="nise-section" id="method">
       <div class="nise-wrap">
-        <div class="nise-eyebrow reveal">
-          <span class="nise-eyebrow__num">04</span>
-          <span class="nise-eyebrow__label">Method &mdash; NISE</span>
-          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
-        </div>
         <h2 class="nise-h2 reveal">Features that stay stable when the <em>depth is wrong</em>.</h2>
 
         <!-- the thinking, lead with it -->
         <div class="nise-thinking reveal">
-          <span class="nise-thinking__tag">The thinking</span>
           <p>
             What a 3D policy needs is geometry features that stay stable when the
             underlying depth is imperfect. That implies two moves: shape the shared features toward
@@ -497,7 +514,7 @@
              The camera-ready v9 figure (method_framework_camera_ready_v9.png) is authoritative and
              unchanged; %-positioned hotspot buttons overlay it and scale with
              the responsive image. All behaviour is in static/js/pipeline.js. -->
-        <figure class="nise-figure reveal" style="margin-top:2.2rem">
+        <figure class="nise-figure nise-framework reveal">
           <div class="nise-figure__frame nise-pipe" id="nise-pipe">
             <div class="nise-pipe__diagram">
             <img src="static/images/method_framework_camera_ready_v9.png" width="2200" height="736"
@@ -630,7 +647,6 @@
              the contract the JS binds to — keep them in sync if editing. -->
         <div class="gcvss-block reveal" id="gcvss-block">
           <div class="gcvss-block__head">
-            <span class="gcvss-block__eyebrow">GCVSS &middot; the supervision signal</span>
             <h3 class="gcvss-block__title">Two noisy views, one geometry.</h3>
             <p class="gcvss-block__intro">
               GCVSS needs no clean-depth ground truth. Both cameras are noisy and neither
@@ -757,7 +773,6 @@
              gm3a-cloud-mode / gm3a-cloud-reset are the JS contract. -->
         <div class="gm3a-block reveal" id="gm3a-block">
           <div class="gm3a-block__head">
-            <span class="gm3a-block__eyebrow">GM3A &middot; the dampening field</span>
             <h3 class="gm3a-block__title">Trust geometry by its reliability.</h3>
             <span class="gm3a-block__tag">
               <span class="gm3a-block__tag-ico" aria-hidden="true"><i class="fas fa-pen-ruler"></i></span>
@@ -859,11 +874,6 @@
     <!-- ====================== RESULTS — simulation (05) ================ -->
     <section class="nise-section nise-section--tint" id="results">
       <div class="nise-wrap">
-        <div class="nise-eyebrow reveal">
-          <span class="nise-eyebrow__num">05</span>
-          <span class="nise-eyebrow__label">Results &mdash; simulation</span>
-          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
-        </div>
         <h2 class="nise-h2 reveal">The baselines fall. <em>NISE holds.</em></h2>
         <p class="nise-lead reveal nise-narrow">
           Sweep test-time depth from clean to saturated and the cliff appears: matched
@@ -887,7 +897,6 @@
              are the JS contract — keep them in sync if editing. -->
         <div class="simres-block reveal" id="simres-block">
           <div class="simres-block__head">
-            <span class="simres-block__eyebrow">What the policy consumes</span>
             <h3 class="simres-block__title">A 3D policy sees this geometry &mdash; not the scene.</h3>
             <p class="simres-block__intro">
               This is a real RLBench&nbsp;PerAct-18 frame (<i>stack&nbsp;cups</i>), back-projected
@@ -935,23 +944,12 @@
               frame (<i>stack&nbsp;cups</i>, <span class="lbl">front</span> workspace camera) under
               our <b>mild</b> depth-corruption model &mdash; the same model swept in
               &sect;3. Even mild noise drops edges and scatters floaters; toggle to the clean
-              reference to see the same scene before corruption. <i>And here is what that
-              corruption does to every policy &darr;</i>
+              reference to see the same scene before corruption. The
+              <a href="#depth-cliff">depth-corruption cliff comparison above</a> shows how
+              this affects policy success.
             </figcaption>
           </figure>
         </div>
-
-        <!-- INTERACTIVE cliff chart — engine owns data, legend, panel numerals,
-             margin brackets, sensor-band footnote, and the descend animation. -->
-        <div class="nise-chart-shell reveal">
-          <div id="nise-chart-cliff"></div>
-        </div>
-        <p class="nise-chart-caption reveal">
-          Task-averaged success under clean, mild, and saturated depth corruption (Table 2).
-          Boxes show <b>mean &plusmn; one standard deviation across three independent training
-          runs</b>. All rows use noise-aware training; on RLBench, 3DDA, SAM2Act, and NISE
-          share an equal-probability mixture of clean, mild, and saturated depth.
-        </p>
 
       </div>
     </section>
@@ -961,11 +959,6 @@
     <!-- ====================== RESULTS — real robot (06) =============== -->
     <section class="nise-section" id="real-robot">
       <div class="nise-wrap">
-        <div class="nise-eyebrow reveal">
-          <span class="nise-eyebrow__num">06</span>
-          <span class="nise-eyebrow__label">Results &mdash; real robot</span>
-          <span class="nise-eyebrow__rule" aria-hidden="true"></span>
-        </div>
         <h2 class="nise-h2 reveal">Transparent and reflective, on <em>real hardware</em>.</h2>
         <p class="nise-lead reveal nise-narrow">
           We take NISE off the benchmark and onto two robots, with the exact object classes that
@@ -1093,8 +1086,8 @@
     </div>
   </footer>
 
-  <!-- Chart engine (auto-renders into #nise-chart-cliff + #nise-chart-realrobot) -->
-  <script src="static/js/charts.js?v=camera-ready-20261013"></script>
+  <!-- Chart engine renders the real-robot chart; Figure 1b above is static. -->
+  <script src="static/js/charts.js?v=layout-20261021"></script>
   <!-- Tiny page behaviours: hero load, scroll-reveal, scroll-spy, burger, copy -->
   <script src="static/js/nise.js"></script>
   <!-- Interactive pipeline overlay: hover / tap / focus a component for its rationale -->

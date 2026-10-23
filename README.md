@@ -6,7 +6,9 @@
 
 This repository contains the public project website, including the camera-ready
 framework, real-robot setup, interactive result charts, and robot demonstrations.
-Paper and research-code links will be added when they are available.
+Read the paper on [arXiv](https://arxiv.org/abs/2610.24674) or
+[download the PDF](https://arxiv.org/pdf/2610.24674). Research-code links will be
+added when the code is released.
 
 The website source is maintained at [Zhiyuan002/NISE](https://github.com/Zhiyuan002/NISE).
 The same site is published through the project organization's

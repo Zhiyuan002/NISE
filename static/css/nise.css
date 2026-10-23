@@ -1,11 +1,11 @@
 /* ============================================================================
    NISE supplementary site — custom design layer (canonical academic fashion)
-   Loaded LAST, after bulma.min.css / fontawesome / academicons / fonts / charts.
+   Base design tokens and components; layout.css follows the widget styles.
 
    Look: a standard CoRL / robot-learning project page (cf. 3D Diffuser Actor,
    SAM2Act, RVT-2). White ground, near-black ink, Noto Sans throughout, a
    centered hero with rounded dark pill buttons, centered bold section headers,
-   a justified centered body column, academic-blue links, and rounded media
+   a centered, left-aligned reading column, academic-blue links, and rounded media
    cards. The chrome is deliberately quiet so the work — the interactive charts
    and the RGB-vs-raw-depth pair — carries the page's interest.
 
@@ -37,8 +37,10 @@
   --font-body: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --maxw: 1000px;
-  --maxw-narrow: 900px;   /* 820->900: leads / block heads + intros were sitting too narrow in the middle */
+  --maxw: 1120px;
+  --maxw-narrow: 800px;
+  --gutter: clamp(20px, 5vw, 48px);
+  --block-gap: clamp(32px, 4vw, 48px);
   --nav-h: 56px;
   --radius-pill: 290486px;   /* fully-rounded pill (Bulma's is-rounded radius) */
 
@@ -69,8 +71,7 @@ body.nise-body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   overflow-x: hidden;
-  /* Justified body text should never show rivers: hyphenation OFF, the column
-     is kept to a sensible measure (see .nise-narrow), and words won't break. */
+  /* Keep prose readable without forced word spacing or hyphenation. */
   -webkit-hyphens: none;
   hyphens: none;
   word-break: normal;
@@ -91,9 +92,9 @@ strong, b { font-weight: 700; }
   width: 100%;
   max-width: var(--maxw);
   margin-inline: auto;
-  padding-inline: clamp(20px, 5vw, 48px);
+  padding-inline: var(--gutter);
 }
-.nise-narrow { max-width: var(--maxw-narrow); }
+.nise-narrow { max-width: var(--maxw-narrow); margin-inline: auto; }
 
 /* ============================================================ top nav */
 .nise-nav {
@@ -174,10 +175,9 @@ strong, b { font-weight: 700; }
 
 /* ============================================================ section frame */
 .nise-section {
-  padding-block: clamp(48px, 7.5vw, 88px);
+  padding-block: clamp(48px, 6vw, 80px);
   position: relative;
 }
-.nise-section + .nise-section { padding-top: clamp(36px, 6vw, 72px); }
 .nise-section--tint { background: var(--surface); }
 
 .nise-rule {
@@ -210,12 +210,12 @@ strong, b { font-weight: 700; }
   font-family: var(--font-body);
   font-weight: 700;
   font-size: clamp(1.55rem, 3.4vw, 1.95rem);
-  line-height: 1.18;
+  line-height: 1.25;
   letter-spacing: -0.012em;
   color: var(--ink);
   text-align: center;
   margin: 0 auto 1.6rem;
-  max-width: 62ch;          /* 28ch->40ch->54ch->62ch — long section titles were still wrapping to 2 cramped lines; a wider cap only affects long titles (short centered ones are unchanged) */
+  max-width: 44ch;
   text-wrap: balance;
 }
 .nise-h2 em { font-style: normal; }   /* no terracotta emphasis in chrome */
@@ -229,17 +229,17 @@ strong, b { font-weight: 700; }
   margin: 0 0 0.5rem 0;
 }
 
-/* body copy — justified inside the centered column */
+/* Body copy shares one centered reading measure. */
 .nise-lead,
 .nise-body-text {
   font-size: 1.02rem;
   line-height: 1.7;
   color: var(--ink-soft);
-  text-align: justify;
-  text-justify: inter-word;
+  text-align: left;
   -webkit-hyphens: none;
   hyphens: none;
-  margin: 0 0 1rem 0;
+  max-width: var(--maxw-narrow);
+  margin: 0 auto 1rem;
 }
 .nise-lead { color: var(--ink); }
 .nise-body-text + .nise-body-text { margin-top: 0.9rem; }
@@ -296,7 +296,7 @@ strong, b { font-weight: 700; }
   line-height: 1.12;
   letter-spacing: -0.02em;
   color: var(--ink);
-  /* The hero title may run wider than the justified body column — this is the
+  /* The hero title may run wider than the reading column — this is the
      standard academic-page convention (cf. 3D Diffuser Actor / SAM2Act). A
      wider cap lets the full title settle into 2–3 lines on desktop instead of
      the ~5 lines a 20ch measure forced; it narrows responsively below. */
@@ -586,18 +586,18 @@ strong, b { font-weight: 700; }
   overflow: hidden;
 }
 .nise-figure__frame img { border-radius: 12px; width: 100%; display: block; }
-/* figure captions — italic, centered, muted (the academic convention) */
+/* Figure captions use the same reading measure as the prose. */
 .nise-figure__cap {
-  margin: 0.9rem auto 0;
+  margin: 1rem auto 0;
   font-family: var(--font-body);
-  font-style: italic;
+  font-style: normal;
   font-size: 0.92rem;
-  line-height: 1.55;
+  line-height: 1.65;
   color: var(--ink-soft);
-  max-width: 760px;
-  text-align: center;
+  max-width: var(--maxw-narrow);
+  text-align: left;
 }
-.nise-figure__cap b, .nise-figure__cap strong { color: var(--ink); font-weight: 700; font-style: italic; }
+.nise-figure__cap b, .nise-figure__cap strong { color: var(--ink); font-weight: 700; font-style: normal; }
 .nise-figure__cap .lbl { font-family: var(--font-mono); font-weight: 600; color: var(--ink-soft); font-size: 0.92em; font-style: normal; }
 .nise-figure--narrow { max-width: 760px; margin-inline: auto; }
 
@@ -648,7 +648,7 @@ strong, b { font-weight: 700; }
   color: var(--ink-soft);
   text-align: center;
 }
-.nise-pair__cap b { color: var(--ink); font-weight: 700; font-style: italic; }
+.nise-pair__cap b { color: var(--ink); font-weight: 700; font-style: normal; }
 
 /* corruption-family chips (centered) */
 .nise-chips {
@@ -702,8 +702,7 @@ strong, b { font-weight: 700; }
 .nise-thinking p {
   color: var(--ink-soft);
   margin: 0 auto;
-  text-align: justify;
-  text-justify: inter-word;
+  text-align: left;
 }
 
 /* ----------------------------------------------------- interactive pipeline */
@@ -873,7 +872,7 @@ strong, b { font-weight: 700; }
   grid-template-columns: 1fr 1fr;
   gap: 1.4rem;
   margin: 2rem auto 0;
-  max-width: 920px;
+  max-width: 100%;
 }
 .nise-card {
   position: relative;
@@ -954,6 +953,22 @@ strong, b { font-weight: 700; }
 .nise-note .metric { font-size: 0.92rem; }
 
 /* ============================================================ results shells */
+.nise-cliff-figure { margin: var(--block-gap) auto 0; }
+.nise-cliff-figure__title {
+  margin-bottom: 1.4rem;
+  font-size: clamp(1.25rem, 2.5vw, 1.55rem);
+  font-weight: 700;
+  text-align: center;
+}
+.nise-cliff-figure__image { display: block; }
+.nise-cliff-figure__image img { width: 100%; height: auto; }
+.nise-cliff-figure__image:focus-visible { outline: 2px solid var(--link); outline-offset: 6px; }
+.nise-cliff-figure__stack { display: none; }
+@media (max-width: 640px) {
+  .nise-cliff-figure__wide { display: none; }
+  .nise-cliff-figure__stack { display: grid; gap: 1.5rem; }
+}
+
 .nise-chart-shell {
   margin: 1.8rem auto 0;
   background: #fff;
@@ -965,14 +980,14 @@ strong, b { font-weight: 700; }
 .nise-chart-caption {
   margin: 1rem auto 0;
   font-family: var(--font-body);
-  font-style: italic;
-  font-size: 0.9rem;
-  line-height: 1.55;
+  font-style: normal;
+  font-size: 0.92rem;
+  line-height: 1.65;
   color: var(--ink-soft);
-  max-width: 820px;
-  text-align: center;
+  max-width: var(--maxw-narrow);
+  text-align: left;
 }
-.nise-chart-caption b { color: var(--ink); font-weight: 700; font-style: italic; }
+.nise-chart-caption b { color: var(--ink); font-weight: 700; font-style: normal; }
 
 /* Layout guard (custom layer only): the chart engine pins its replay pill to the
    shell's top-right (position:absolute) AND right-aligns its header note via
@@ -1021,7 +1036,7 @@ strong, b { font-weight: 700; }
 .nise-headline-stat .txt b { color: var(--ink); font-weight: 700; }
 
 /* ============================================================ real-robot setup */
-.nise-setup { margin: 0 auto; max-width: 900px; }
+.nise-framework, .nise-setup { margin: 2rem auto 0; }
 
 /* video tile grid (rollouts) */
 .nise-tiles {
@@ -1220,7 +1235,7 @@ strong, b { font-weight: 700; }
     box-shadow: var(--shadow-soft);
   }
   .nise-nav__links.is-open a { padding: 0.7rem 0.2rem; border-radius: 0; }
-  .nise-nav__links.is-open a + a { border-top: 1px solid var(--rule); }
+  .nise-nav__links.is-open li + li { border-top: 1px solid var(--rule); }
   .nise-nav__links.is-open a.is-active::after { display: none; }
 }
 @media (max-width: 680px) {
@@ -1228,10 +1243,8 @@ strong, b { font-weight: 700; }
   .nise-pair { grid-template-columns: 1fr; }
   .nise-tiles { grid-template-columns: 1fr; }
   .nise-headline-stat { align-items: flex-start; text-align: left; }
-  /* Justified text on very narrow columns risks rivers; switch to left-align. */
   .nise-lead, .nise-body-text, .nise-thinking p, .nise-chart-caption,
   .nise-figure__cap, .nise-pair__cap { text-align: left; }
-  .nise-chart-caption, .nise-figure__cap, .nise-pair__cap { text-align: center; }
 }
 @media (max-width: 400px) {
   .nise-cta { gap: 0.5rem; }

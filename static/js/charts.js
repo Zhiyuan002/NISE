@@ -784,10 +784,10 @@
 
     flat.forEach(function (entry, ti) {
       var task = entry.task;
-      // task label (wrap to two lines if long)
-      var labelLines = wrapLabel(task.task, 18);
+      // Narrow panels need shorter lines without dropping any task-name words.
+      var labelLines = wrapLabel(task.task, opts.labelChars || 18);
       labelLines.forEach(function (ln, li) {
-        svg.appendChild(svgText(taskCenter(ti), baselineY + 14 + li * 11, ln, 'nc-bar-task-label', { 'text-anchor': 'middle' }));
+        svg.appendChild(svgText(taskCenter(ti), baselineY + 14 + li * (opts.labelLineHeight || 11), ln, 'nc-bar-task-label', { 'text-anchor': 'middle' }));
       });
 
       task.vals.forEach(function (v, mi) {
@@ -958,7 +958,7 @@
       else cur = test;
     }
     if (cur) lines.push(cur);
-    return lines.slice(0, 2);
+    return lines;
   }
 
   /* --------------------------------------------------- legend / header DOM */
@@ -1159,8 +1159,10 @@
           ariaLabel: subAria,
           groups: [g],
           drawGroupBands: false,
-          W: 340, H: 300,
-          M: { top: 20, right: 14, bottom: 46, left: 40 },
+          W: 340, H: 306,
+          M: { top: 20, right: 14, bottom: 52, left: 40 },
+          labelChars: 12,
+          labelLineHeight: 14,
           taskPadFrac: 0.12
         });
         sub.appendChild(so.svg);
